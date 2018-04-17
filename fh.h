@@ -117,8 +117,6 @@ struct cifsd_mfile {
 	unsigned int m_flags;
 	struct hlist_node m_hash;
 	struct list_head m_fp_list;
-	struct oplock_info *m_opinfo;
-	bool has_lease;
 	bool is_stream;
 	char *stream_name;
 };
@@ -128,7 +126,6 @@ struct cifsd_file {
 	struct cifsd_sess *sess;
 	struct cifsd_tcon *tcon;
 	struct cifsd_mfile *f_mfp;
-	struct cifsd_mfile *parent_mfp;
 	struct oplock_info *f_opinfo;
 	struct file *filp;
 	char *filename;
