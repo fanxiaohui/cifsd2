@@ -39,14 +39,6 @@
 #define	FILE_GENERIC_WRITE	0x120116
 #define	FILE_GENERIC_EXECUTE	0X1200a0
 
-/* Max id limit is 0xFFFF, so create bitmap with only this size*/
-#define CIFSD_BITMAP_SIZE        0xFFFF
-#define CIFSD_START_FID		 1
-
-#define FP_FILENAME(fp)		fp->filp->f_path.dentry->d_name.name
-#define FP_INODE(fp)		fp->filp->f_path.dentry->d_inode
-#define PARENT_INODE(fp)	fp->filp->f_path.dentry->d_parent->d_inode
-
 #define ATTR_FP(fp) (fp->attrib_only && \
 		(fp->cdoption != FILE_OVERWRITE_IF_LE && \
 		fp->cdoption != FILE_OVERWRITE_LE && \
@@ -55,10 +47,6 @@
 #define S_DEL_PENDING			1
 #define S_DEL_ON_CLS			2
 #define S_DEL_ON_CLS_STREAM		8
-
-/* FP STATE */
-#define FP_NEW		0
-#define FP_FREEING	1
 
 struct cifsd_tcp_conn;
 struct cifsd_sess;
@@ -133,20 +121,6 @@ struct cifsd_pipe {
 };
 
 #define CIFSD_NR_OPEN_DEFAULT BITS_PER_LONG
-
-/* fidtable structure */
-struct fidtable {
-	unsigned int max_fids;
-	void **fileid;
-	unsigned int start_pos;
-	unsigned long *cifsd_bitmap;
-};
-
-struct fidtable_desc {
-	spinlock_t fidtable_lock;
-	struct fidtable *ftab;
-};
-
 /***********************************************************************/
 
 struct cifsd_inode;
@@ -207,4 +181,12 @@ struct cifsd_file {
 	unsigned long long		llock_fstart;
 };
 
+#define CIFSD_FILE_PARENT_VFS_INODE(f)	\
+	((f)->filp->f_path.dentry->d_parent->d_inode)
+
+#define CIFSD_FILE_VFS_INODE(f)	\
+	((f)->filp->f_path.dentry->d_inode)
+
+#define CIFSD_FILE_INODE(f)	\
+	((f)->f_inode)
 #endif /* __CIFSD_FILE_CACHE_H__ */

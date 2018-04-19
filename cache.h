@@ -28,17 +28,39 @@ struct cifsd_cache {
 	struct radix_tree_root	rt;
 	atomic_long_t		next_id;
 
-	void *(*lookup_cb)(void *val);
+	void *(*lookup_fn)(void *val);
+	void (*destructor_fn)(void *val);
 };
 
+static void cifsd_cache_destroy(struct cifsd_cache *cache)
+{
+	struct radix_tree_iter iter;
+	void **slot;
+
+	down_write(&cache->lock);
+	radix_tree_for_each_slot(slot, &cache->rt, &iter, 0) {
+		void *val = radix_tree_deref_slot(slot);
+
+		if (val && cache->destructor_fn) {
+			slot = radix_tree_iter_resume(slot, &iter);
+			up_write(&cache->lock);
+			cache->destructor_fn(val);
+			down_write(&cache->lock);
+		}
+	}
+	up_write(&cache->lock);
+}
+
 static void cifsd_cache_init(struct cifsd_cache *cache,
-			     void *(*lookup_cb)(void *val))
+			     void *(*lookup_fn)(void *val),
+			     void (*destructor_fn)(void *val))
 {
 	INIT_RADIX_TREE(&cache->rt, GFP_KERNEL);
 
 	init_rwsem(&cache->lock);
 	atomic_long_set(&cache->next_id, 0);
-	cache->lookup_cb = lookup_cb;
+	cache->lookup_fn = lookup_fn;
+	cache->destructor_fn = destructor_fn;
 }
 
 static void *cifsd_cache_lookup(struct cifsd_cache *cache, unsigned long id)
@@ -47,8 +69,8 @@ static void *cifsd_cache_lookup(struct cifsd_cache *cache, unsigned long id)
 
 	down_read(&cache->lock);
 	ret = radix_tree_lookup(&cache->rt, id);
-	if (ret && cache->lookup_cb)
-		ret = cache->lookup_cb(ret);
+	if (ret && cache->lookup_fn)
+		ret = cache->lookup_fn(ret);
 	up_read(&cache->lock);
 
 	return ret;
@@ -74,7 +96,7 @@ static int cifsd_cache_insert_position(struct cifsd_cache *cache,
 	int ret;
 
 	down_write(&cache->lock);
-	start_pos = atomic64_read(&cache->next_id);
+	start_pos = atomic_long_read(&cache->next_id);
 	do {
 		key = atomic_long_inc_return(&cache->next_id);
 		if (key == start_pos) {
@@ -92,7 +114,7 @@ static int cifsd_cache_insert_position(struct cifsd_cache *cache,
 static int cifsd_cache_remove(struct cifsd_cache *cache, unsigned long key)
 {
 	down_write(&cache->lock);
-	radix_tree_delete(&cache->rt, (unsigned long)inode);
+	radix_tree_delete(&cache->rt, key);
 	up_write(&cache->lock);
 	return 0;
 }

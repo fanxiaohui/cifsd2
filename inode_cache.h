@@ -23,18 +23,33 @@
 #include <linux/spinlock.h>
 #include <linux/list.h>
 #include <linux/atomic.h>
+#include <linux/workqueue.h>
 
 #include "cache.h"
 
 struct cifsd_inode {
-	struct inode		*inode;
+	struct inode		*i_inode;
 	spinlock_t		i_lock;
 
-	atomic_t		i_count;
+	atomic_t		i_refcount;
 	atomic_t		i_op_count;
 	unsigned int		i_flags;
 	struct list_head	i_fp_list;
 	char			*stream_name;
+
+	struct work_struct	free_work;
 };
+
+#define CIFSD_INODE_LOOKUP_KEY(i)	((unsigned long)(i)->i_inode)
+
+int cifsd_inode_cache_insert(struct cifsd_inode *ino);
+int cifsd_inode_cache_remove(struct cifsd_inode *ino);
+struct cifsd_inode *cifsd_inode_cache_lookup(unsigned long key);
+
+struct cifsd_inode *cifsd_inode_alloc(unsigned long key);
+void cifsd_inode_put(struct cifsd_inode *ino);
+
+int cifsd_inode_cache_init(void);
+void cifsd_inode_cache_destroy(void);
 
 #endif /* __CIFSD_INODE_CACHE_H__ */
