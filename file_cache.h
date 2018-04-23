@@ -19,14 +19,13 @@
 #ifndef __CIFSD_FILE_CACHE_H__
 #define __CIFSD_FILE_CACHE_H__
 
-#include <linux/rwsem.h>
-#include <linux/radix-tree.h>
 #include <linux/atomic.h>
 #include <linux/time.h>
 #include <linux/wait.h>
 #include <linux/fs.h>
-
-#include "cache.h"
+#include <linux/workqueue.h>
+#include <linux/list.h>
+#include <linux/spinlock.h>
 
 /***********************************************************************/
 /** TO BE REVISITED **/
@@ -52,45 +51,45 @@ struct cifsd_tcp_conn;
 struct cifsd_sess;
 
 struct smb_readdir_data {
-	struct dir_context ctx;
-	char           *dirent;
-	unsigned int   used;
-	unsigned int   full;
-	unsigned int   dirent_count;
-	unsigned int   file_attr;
+	struct dir_context	ctx;
+	char			*dirent;
+	unsigned int		used;
+	unsigned int		full;
+	unsigned int		dirent_count;
+	unsigned int		file_attr;
 };
 
 struct smb_dirent {
-	__le64         ino;
-	__le64          offset;
-	__le32         namelen;
-	__le32         d_type;
-	char            name[];
+	__le64		ino;
+	__le64		offset;
+	__le32		d_type;
+	__le32		namelen;
+	char		name[];
 };
 
 struct notification {
-	unsigned int mode;
-	struct list_head queuelist;
-	struct smb_work *work;
+	unsigned int		mode;
+	struct list_head	queuelist;
+	struct smb_work		*work;
 };
 
 struct cifsd_lock {
-	struct file_lock *fl;
-	struct list_head glist;
-	struct list_head llist;
-	struct list_head flist;
-	unsigned int flags;
-	unsigned int cmd;
-	int zero_len;
-	unsigned long long start;
-	unsigned long long end;
-	struct smb_work *work;
+	struct file_lock	*fl;
+	struct list_head	glist;
+	struct list_head	llist;
+	struct list_head	flist;
+	unsigned int		flags;
+	unsigned int		cmd;
+	int			zero_len;
+	unsigned long long	start;
+	unsigned long long	end;
+	struct smb_work	*work;
 };
 
 struct stream {
-	char *name;
-	int type;
-	ssize_t size;
+	char		*name;
+	int		type;
+	ssize_t		size;
 };
 
 enum cifsd_pipe_type {
@@ -101,23 +100,23 @@ enum cifsd_pipe_type {
 };
 
 struct cifsd_pipe_table {
-	char pipename[32];
-	unsigned int pipetype;
+	char		pipename[32];
+	unsigned int	pipetype;
 };
 
 #define INVALID_PIPE   0xFFFFFFFF
 
 struct cifsd_pipe {
-	unsigned int id;
-	char *data;
-	int pkt_type;
-	int pipe_type;
-	int opnum;
-	char *buf;
-	int datasize;
-	int sent;
-	struct cifsd_uevent ev;
-	char *rsp_buf;
+	unsigned int		id;
+	char			*data;
+	int			pkt_type;
+	int			pipe_type;
+	int			opnum;
+	char			*buf;
+	int			datasize;
+	int			sent;
+	struct cifsd_uevent	ev;
+	char			*rsp_buf;
 };
 
 #define CIFSD_NR_OPEN_DEFAULT BITS_PER_LONG
@@ -179,6 +178,9 @@ struct cifsd_file {
 	unsigned int			cflock_cnt;
 	/* last lock failure start offset for SMB1 */
 	unsigned long long		llock_fstart;
+
+	atomic_t			f_refcount;
+	struct work_struct		free_work;
 };
 
 #define CIFSD_FILE_PARENT_VFS_INODE(f)	\
@@ -189,4 +191,5 @@ struct cifsd_file {
 
 #define CIFSD_FILE_INODE(f)	\
 	((f)->f_inode)
+
 #endif /* __CIFSD_FILE_CACHE_H__ */
