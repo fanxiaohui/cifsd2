@@ -98,11 +98,13 @@ static void cifsd_cache_destroy(struct cifsd_cache *cache)
 	radix_tree_for_each_slot(slot, &cache->rt, &iter, 0) {
 		void *val = radix_tree_deref_slot(slot);
 
-		if (val && cache->destructor_fn) {
+		if (cache->destructor_fn) {
 			slot = radix_tree_iter_resume(slot, &iter);
 			up_write(&cache->lock);
 			cache->destructor_fn(val);
 			down_write(&cache->lock);
+		} else {
+			radix_tree_iter_delete(&cache->rt, &iter, slot);
 		}
 	}
 	up_write(&cache->lock);
