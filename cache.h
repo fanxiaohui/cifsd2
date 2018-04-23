@@ -173,13 +173,9 @@ static int cifsd_hash_insert(struct cifsd_hash *ht,
 static int cifsd_hash_remove(struct cifsd_hash *ht,
 			     struct hlist_node *node)
 {
-	if (ht->destructor_fn) {
-		ht->destructor_fn(node);
-	} else {
-		down_write(&ht->lock);
-		hlist_del(node);
-		up_write(&ht->lock);
-	}
+	down_write(&ht->lock);
+	hlist_del(node);
+	up_write(&ht->lock);
 	return 0;
 }
 
