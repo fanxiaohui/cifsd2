@@ -125,7 +125,7 @@ struct cifsd_pipe {
 struct cifsd_inode;
 
 struct cifsd_file {
-	struct file			*filp;
+	struct file			*f_filp;
 	struct cifsd_inode		*f_inode;
 
 	struct cifsd_sess		*sess;
@@ -161,7 +161,7 @@ struct cifsd_file {
 	__u64				create_time;
 
 	struct stream			stream;
-	struct list_head		node;
+	struct list_head		f_ino_list;
 	struct hlist_node		notify_node;
 	struct list_head		queue;
 	struct list_head		lock_list;
@@ -179,17 +179,27 @@ struct cifsd_file {
 	/* last lock failure start offset for SMB1 */
 	unsigned long long		llock_fstart;
 
-	atomic_t			f_refcount;
-	struct work_struct		free_work;
+	atomic_t			__refcount;
+	struct work_struct		__free_work;
 };
 
 #define CIFSD_FILE_PARENT_VFS_INODE(f)	\
-	((f)->filp->f_path.dentry->d_parent->d_inode)
+	((f)->f_filp->f_path.dentry->d_parent->d_inode)
 
 #define CIFSD_FILE_VFS_INODE(f)	\
-	((f)->filp->f_path.dentry->d_inode)
+	((f)->f_filp->f_path.dentry->d_inode)
 
 #define CIFSD_FILE_INODE(f)	\
 	((f)->f_inode)
+
+int cifsd_file_cache_insert(struct cifsd_file *filp);
+struct cifsd_file *cifsd_file_cache_lookup(unsigned long key);
+void cifsd_file_put(struct cifsd_file *filp);
+
+struct cifsd_file *cifsd_file_open(struct file *file);
+void cifsd_file_close(struct cifsd_file *filp);
+
+int cifsd_file_cache_init(void);
+void cifsd_file_cache_destroy(void);
 
 #endif /* __CIFSD_FILE_CACHE_H__ */

@@ -16,19 +16,22 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
 
+#include <linux/slab.h>
+
 #include "cache.h"
 #include "file_cache.h"
+#include "inode_cache.h"
+#include "buffer_pool.h"
 
 static struct cifsd_cache file_cache;
 
 static void cifsd_file_free(struct work_struct *work)
 {
 	struct cifsd_file *filp = container_of(work,
-					      struct cifsd_file,
-					      free_work);
+					       struct cifsd_file,
+					       __free_work);
 
-	cifsd_cache_remove(&file_cache, CIFSD_FILE_LOOKUP_KEY(filp));
-	kfree(filp->stream_name);
+	kfree(filp->stream.name);
 	kfree(filp);
 }
 
@@ -36,19 +39,19 @@ static void __destructor_fn(void *val)
 {
 	struct cifsd_file *filp = (struct cifsd_file *)val;
 
-	schedule_work(&filp->free_work);
+	schedule_work(&filp->__free_work);
 }
 
 static void *cifsd_file_get(struct cifsd_file *filp)
 {
-	if (!atomic_inc_not_zero(&filp->i_refcount))
+	if (!atomic_inc_not_zero(&filp->__refcount))
 		return NULL;
         return filp;
 }
 
 void cifsd_file_put(struct cifsd_file *filp)
 {
-	if (!atomic_dec_and_test(&filp->i_refcount))
+	if (!atomic_dec_and_test(&filp->__refcount))
 		return;
 	__destructor_fn(filp);
 }
@@ -57,58 +60,49 @@ static void *__lookup_fn(void *val)
 {
 	struct cifsd_file *filp = (struct cifsd_file *)val;
 
-	if (!filp->i_file)
+	if (!filp->f_filp)
 		return NULL;
 	return cifsd_file_get(filp);
 }
 
 int cifsd_file_cache_insert(struct cifsd_file *filp)
 {
-	return cifsd_cache_insert(&file_cache,
-				  CIFSD_file_LOOKUP_KEY(filp),
-				  filp);
-}
-
-int cifsd_file_cache_remove(struct cifsd_file *filp)
-{
-	return cifsd_cache_remove(&file_cache,
-				  CIFSD_file_LOOKUP_KEY(filp));
+	return 0;
 }
 
 struct cifsd_file *cifsd_file_cache_lookup(unsigned long key)
 {
-	return cifsd_cache_lookup(&file_cache, key);
+	return NULL;
 }
 
-struct cifsd_file *cifsd_file_alloc(unsigned long key)
+struct cifsd_file *cifsd_file_open(struct file *file)
 {
 	struct cifsd_file *filp;
+	struct cifsd_inode *inode;
 
-	filp = cifsd_cache_lookup(&file_cache, key);
-	if (filp)
-		return filp;
-
-	filp = kzalloc(sizeof(struct cifsd_file), GFP_KERNEL);
+	filp = cifsd_alloc_file_struct();
 	if (!filp)
 		return NULL;
 
-	spin_lock_init(&filp->i_lock);
-	atomic_set(&filp->i_refcount, 1);
-	atomic_set(&filp->i_op_count, 0);
-	INIT_LIST_HEAD(&filp->i_fp_list);
-	INIT_WORK(&filp->free_work, cifsd_file_free);
+	atomic_set(&filp->__refcount, 1);
+	INIT_WORK(&filp->__free_work, cifsd_file_free);
 
-	if (cifsd_cache_insert(&file_cache, key, filp)) {
-		kfree(filp);
-		filp = cifsd_cache_lookup(&file_cache, key);
-	}
-
-	if (!filp) {
+	inode = cifsd_inode_open(filp);
+	if (!inode) {
 		WARN_ON(1);
+		cifsd_free_file_struct(filp);
 		return NULL;
 	}
 
+	filp->f_filp = file;
+	filp->f_inode = inode;
 	return filp;
+}
+
+void cifsd_file_close(struct cifsd_file *filp)
+{
+	cifsd_inode_close(filp);
+	cifsd_file_put(filp);
 }
 
 int cifsd_file_cache_init(void)
