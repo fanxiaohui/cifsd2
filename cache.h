@@ -20,6 +20,7 @@
 #define __CIFSD_CACHE_H__
 
 #include <linux/hashtable.h>
+#include <linux/jhash.h>
 #include <linux/rwsem.h>
 #include <linux/radix-tree.h>
 #include <linux/atomic.h>
@@ -147,11 +148,20 @@ struct cifsd_hash {
 	struct rw_semaphore	lock;
 	struct hlist_head	*hash;
 	size_t			size_bits;
+	size_t			key_size;
 
 	int			(*lookup_fn)(struct hlist_node *node,
 					     unsigned long id);
 	void 			(*destructor_fn)(struct hlist_node *t);
 };
+
+static unsigned long ______hash_fn(struct cifsd_hash *ht, unsigned long key)
+{
+	if (ht->key_size == 4 || ht->key_size == 8)
+		return hash_long((unsigned long)key, ht->size_bits);
+	return (unsigned long)jhash((void *)key, ht->key_size, 0) >>
+							(32 - ht->size_bits);
+}
 
 static struct hlist_node*
 cifsd_hash_lookup(struct cifsd_hash *ht, unsigned long key)
@@ -161,7 +171,7 @@ cifsd_hash_lookup(struct cifsd_hash *ht, unsigned long key)
 	struct hlist_head *hhd;
 	struct hlist_node *node;
 
-	k = hash_long(key, ht->size_bits);
+	k = ______hash_fn(ht, key);
 	hhd = &ht->hash[k];
 
 	down_read(&ht->lock);
@@ -180,7 +190,7 @@ static int cifsd_hash_insert(struct cifsd_hash *ht,
 			     unsigned long key,
 			     struct hlist_node *node)
 {
-	unsigned long k = hash_long(key, ht->size_bits);
+	unsigned long k = ______hash_fn(ht, key);
 
 	down_write(&ht->lock);
 	hlist_add_head(node, &ht->hash[k]);
@@ -223,6 +233,7 @@ static void cifsd_hash_destroy(struct cifsd_hash *ht)
 static int
 cifsd_hash_init(struct cifsd_hash *ht,
 		size_t size_bits,
+		size_t key_size,
 		int (*lookup_fn)(struct hlist_node *node, unsigned long id),
 		void (*destructor_fn)(struct hlist_node *t))
 {
@@ -233,6 +244,8 @@ cifsd_hash_init(struct cifsd_hash *ht,
 		return -ENOMEM;
 
 	ht->size_bits = size_bits;
+	ht->key_size = key_size;
+
 	init_rwsem(&ht->lock);
 	ht->lookup_fn = lookup_fn;
 	ht->destructor_fn = destructor_fn;
