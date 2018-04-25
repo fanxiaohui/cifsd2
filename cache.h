@@ -77,9 +77,9 @@ static int cifsd_cache_insert(struct cifsd_cache *cache,
 	return ret;
 }
 
-static int cifsd_cache_insert_position(struct cifsd_cache *cache,
-				       void *val,
-				       unsigned long *id)
+static int cifsd_cache_insert_index(struct cifsd_cache *cache,
+				    void *val,
+				    unsigned long *id)
 {
 	unsigned long key, start_pos;
 	int ret;
