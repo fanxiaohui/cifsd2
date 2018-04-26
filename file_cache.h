@@ -30,6 +30,7 @@
 /***********************************************************************/
 /** TO BE REVISITED **/
 
+#include "cache.h"
 #include "netlink.h"
 
 /* Windows style file permissions for extended response */
@@ -191,6 +192,11 @@ struct cifsd_file {
 
 #define CIFSD_FILE_INODE(f)	\
 	((f)->f_inode)
+
+struct cifsd_file_cache {
+	struct cifsd_cache	cache;
+	struct cifsd_hash	hash;
+};
 
 int cifsd_file_cache_insert(struct cifsd_file *filp);
 struct cifsd_file *cifsd_file_cache_lookup(unsigned long key);
