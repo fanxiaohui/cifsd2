@@ -58,13 +58,11 @@ static void *cifsd_cache_lookup(struct cifsd_cache *cache, unsigned long id)
 {
 	void *ret;
 
-	down_read(&cache->lock);
 	rcu_read_lock();
 	ret = radix_tree_lookup(&cache->rt, id);
 	if (ret && cache->lookup_fn)
 		ret = cache->lookup_fn(ret);
 	rcu_read_unlock();
-	up_read(&cache->lock);
 
 	return ret;
 }
@@ -117,7 +115,6 @@ static void cifsd_cache_destroy(struct cifsd_cache *cache)
 	struct radix_tree_iter iter;
 	void **slot;
 
-	down_write(&cache->lock);
 	rcu_read_lock();
 	radix_tree_for_each_slot(slot, &cache->rt, &iter, 0) {
 		void *val = radix_tree_deref_slot(slot);
@@ -127,7 +124,6 @@ static void cifsd_cache_destroy(struct cifsd_cache *cache)
 			cache->destructor_fn(val);
 	}
 	rcu_read_unlock();
-	up_write(&cache->lock);
 }
 
 static int cifsd_cache_init(struct cifsd_cache *cache,
@@ -240,7 +236,6 @@ static void cifsd_hash_destroy(struct cifsd_hash *ht)
 	int i;
 	int size = 1 << ht->size_bits;
 
-	down_write(&ht->lock);
 	for (i = 0; i < size; i++) {
 		hhd = &ht->hash[i];
 
@@ -250,7 +245,6 @@ static void cifsd_hash_destroy(struct cifsd_hash *ht)
 				ht->destructor_fn(hhd->first);
 		}
 	}
-	up_write(&ht->lock);
 }
 
 static int
