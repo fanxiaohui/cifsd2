@@ -32,6 +32,7 @@
 
 #include "cache.h"
 #include "netlink.h"
+#include "glob.h"
 
 /* Windows style file permissions for extended response */
 #define	FILE_GENERIC_ALL	0x1F01FF
@@ -43,10 +44,6 @@
 		(fp->cdoption != FILE_OVERWRITE_IF_LE && \
 		fp->cdoption != FILE_OVERWRITE_LE && \
 		fp->cdoption != FILE_SUPERSEDE_LE))
-
-#define S_DEL_PENDING			1
-#define S_DEL_ON_CLS			2
-#define S_DEL_ON_CLS_STREAM		8
 
 struct cifsd_tcp_conn;
 struct cifsd_sess;

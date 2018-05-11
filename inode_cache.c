@@ -148,6 +148,19 @@ void cifsd_inode_close(struct cifsd_file *filp)
 	cifsd_inode_put(CIFSD_FILE_INODE(filp));
 }
 
+void cifsd_inode_set_delete_on_close(struct cifsd_file *filp)
+{
+	struct cifsd_inode *ino = CIFSD_FILE_INODE(filp);
+
+	if (atomic_read(&ino->__refcount) == 1)
+		ino->i_flags |= CIFSD_INODE_UNLINK_ON_CLOSE;
+}
+
+void cifsd_inode_clear_delete_on_close(struct cifsd_file *filp)
+{
+	ino->i_flags &= ~CIFSD_INODE_UNLINK_ON_CLOSE;
+}
+
 int cifsd_inode_cache_init(void)
 {
 	cifsd_cache_init(&inode_cache,

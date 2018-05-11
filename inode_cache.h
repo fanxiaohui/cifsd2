@@ -54,6 +54,9 @@ struct cifsd_file;
 struct cifsd_inode *cifsd_inode_open(struct cifsd_file *filp);
 void cifsd_inode_close(struct cifsd_file *filp);
 
+void cifsd_inode_set_delete_on_close(struct cifsd_file *filp);
+void cifsd_inode_clear_delete_on_close(struct cifsd_file *filp);
+
 int cifsd_inode_cache_init(void);
 void cifsd_inode_cache_destroy(void);
 

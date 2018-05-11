@@ -23,6 +23,8 @@
 #include "inode_cache.h"
 #include "buffer_pool.h"
 
+#include "oplock.h"
+
 static struct cifsd_cache file_cache;
 
 static void cifsd_file_free(struct work_struct *work)
@@ -101,8 +103,16 @@ struct cifsd_file *cifsd_file_open(struct file *file)
 
 void cifsd_file_close(struct cifsd_file *filp)
 {
+	struct file *vfs_filp;
+
+	if (filp->symlink_filp)
+		vfs_filp = filp->symlink_filp;
+
+	close_id_del_oplock(filp);
+
 	cifsd_inode_close(filp);
 	cifsd_file_put(filp);
+	filp_close(vfs_filp, (struct files_struct *)vfs_filp);
 }
 
 int cifsd_file_cache_init(void)
