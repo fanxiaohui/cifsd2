@@ -122,6 +122,7 @@ struct cifsd_inode *cifsd_inode_open(struct cifsd_file *filp)
 	atomic_set(&ino->__refcount, 1);
 	atomic_set(&ino->i_op_count, 0);
 	INIT_LIST_HEAD(&ino->i_fp_list);
+	INIT_LIST_HEAD(&ino->i_op_list);
 	INIT_WORK(&ino->__free_work, cifsd_inode_free);
 
 	if (cifsd_cache_insert(&inode_cache, key, ino)) {

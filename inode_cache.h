@@ -34,6 +34,7 @@ struct cifsd_inode {
 	atomic_t		i_op_count;
 	unsigned int		i_flags;
 	struct list_head	i_fp_list;
+	struct list_head	i_op_list;
 	char			*i_stream_name;
 
 	atomic_t		__refcount;
