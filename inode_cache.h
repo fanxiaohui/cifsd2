@@ -27,6 +27,9 @@
 
 #include "cache.h"
 
+#define CIFSD_INODE_UNLINK_ON_CLOSE		(1 << 0)
+#define CIFSD_INODE_UNLINK_ON_CLOSE_STREAM	(1 << 1)
+
 struct cifsd_inode {
 	struct inode		*i_inode;
 	spinlock_t		i_lock;
