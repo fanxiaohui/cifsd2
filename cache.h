@@ -161,10 +161,10 @@ static unsigned long ______hash_fn(struct cifsd_hash *ht, unsigned long key)
 }
 
 static struct hlist_node*
-cifsd_hash_lookup_aux_key(struct cifsd_hash *ht,
-			  unsigned long key,
-			  int (*lookup_fn)(struct hlist_node *node,
-					   unsigned long id))
+______cifsd_hash_lookup(struct cifsd_hash *ht,
+			unsigned long key,
+			int (*lookup_fn)(struct hlist_node *node,
+					 unsigned long id))
 {
 	int cmp = -EINVAL;
 	unsigned long k;
@@ -186,27 +186,20 @@ cifsd_hash_lookup_aux_key(struct cifsd_hash *ht,
 	return node;
 }
 
+
+static struct hlist_node*
+cifsd_hash_lookup_aux_key(struct cifsd_hash *ht,
+			  unsigned long key,
+			  int (*lookup_fn)(struct hlist_node *node,
+					   unsigned long id))
+{
+	return ______cifsd_hash_lookup(ht, key, lookup_fn);
+}
+
 static struct hlist_node*
 cifsd_hash_lookup(struct cifsd_hash *ht, unsigned long key)
 {
-	int cmp = -EINVAL;
-	unsigned long k;
-	struct hlist_head *hhd;
-	struct hlist_node *node;
-
-	k = ______hash_fn(ht, key);
-	hhd = &ht->hash[k];
-
-	down_read(&ht->lock);
-	hlist_for_each(node, hhd) {
-		if (ht->lookup_fn)
-			cmp = ht->lookup_fn(node, key);
-		if (cmp == 0)
-			break;
-	}
-	node = NULL;
-	up_read(&ht->lock);
-	return node;
+	return ______cifsd_hash_lookup(ht, key, ht->lookup_fn);
 }
 
 static int cifsd_hash_insert(struct cifsd_hash *ht,
