@@ -169,6 +169,7 @@ struct cifsd_file_ {
 	char				client_guid[16];
 	char				create_guid[16];
 	char				app_instance_id[16];
+	struct hlist_node		file_cache_list;
 	int				durable_timeout;
 	int				pid; /* for SMB1 */
 
@@ -195,14 +196,21 @@ struct cifsd_file_cache {
 	struct cifsd_hash	hash;
 };
 
-int cifsd_file_cache_insert(struct cifsd_file_ *filp);
-struct cifsd_file_ *cifsd_file_cache_lookup(unsigned long key);
+int cifsd_add_to_local_file_cache(struct cifsd_file_ *filp);
+int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp);
+
+struct cifsd_file_ *cifsd_file_cache_lookup(struct cifsd_sess *sess,
+					    unsigned long key);
+
 void cifsd_file_put(struct cifsd_file_ *filp);
 
 struct cifsd_file_ *cifsd_file_open(struct file *file);
 void cifsd_file_close(struct cifsd_file_ *filp);
 
-int cifsd_file_cache_init(void);
-void cifsd_file_cache_destroy(void);
+int cifsd_local_file_cache_init(struct cifsd_sess *sess);
+void cifsd_local_file_cache_destroy(struct cifsd_sess *sess);
+
+int cifsd_global_file_cache_init(void);
+void cifsd_global_file_cache_destroy(void);
 
 #endif /* __CIFSD_FILE_CACHE_H__ */

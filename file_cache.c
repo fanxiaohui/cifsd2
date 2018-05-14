@@ -23,9 +23,10 @@
 #include "inode_cache.h"
 #include "buffer_pool.h"
 
+#include "export.h"
 #include "oplock.h"
 
-static struct cifsd_cache file_cache;
+static struct cifsd_file_cache file_cache;
 
 static void cifsd_file_free(struct work_struct *work)
 {
@@ -37,11 +38,20 @@ static void cifsd_file_free(struct work_struct *work)
 	kfree(filp);
 }
 
-static void __destructor_fn(void *val)
+void __destructor_fn(struct cifsd_file_ *filp)
+{
+
+}
+
+static void __cache_destructor_fn(void *val)
 {
 	struct cifsd_file_ *filp = (struct cifsd_file_ *)val;
 
 	schedule_work(&filp->__free_work);
+}
+
+static void __hash_destructor_fn(struct hlist_node *node)
+{
 }
 
 static void *cifsd_file_get(struct cifsd_file_ *filp)
@@ -58,7 +68,7 @@ void cifsd_file_put(struct cifsd_file_ *filp)
 	__destructor_fn(filp);
 }
 
-static void *__lookup_fn(void *val)
+static void *__cache_lookup_fn(void *val)
 {
 	struct cifsd_file_ *filp = (struct cifsd_file_ *)val;
 
@@ -67,12 +77,23 @@ static void *__lookup_fn(void *val)
 	return cifsd_file_get(filp);
 }
 
-int cifsd_file_cache_insert(struct cifsd_file_ *filp)
+static int __hash_lookup_fn(struct hlist_node *node, unsigned long id)
 {
 	return 0;
 }
 
-struct cifsd_file_ *cifsd_file_cache_lookup(unsigned long key)
+int cifsd_add_to_local_file_cache(struct cifsd_file_ *filp)
+{
+	return 0;
+}
+
+int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
+{
+	return 0;
+}
+
+struct cifsd_file_ *cifsd_file_cache_lookup(struct cifsd_sess *sess,
+					    unsigned long key)
 {
 	return NULL;
 }
@@ -115,15 +136,44 @@ void cifsd_file_close(struct cifsd_file_ *filp)
 	filp_close(vfs_filp, (struct files_struct *)vfs_filp);
 }
 
-int cifsd_file_cache_init(void)
+int cifsd_local_file_cache_init(struct cifsd_sess *sess)
 {
-	cifsd_cache_init(&file_cache,
-			__lookup_fn,
-			__destructor_fn);
-	return 0;
+	int ret = cifsd_cache_init(&sess->file_cache.cache,
+				   __cache_lookup_fn,
+				   __cache_destructor_fn);
+	if (ret)
+		return ret;
+
+	return cifsd_hash_init(&sess->file_cache.hash,
+				7,
+				16,
+				__hash_lookup_fn,
+				__hash_destructor_fn);
 }
 
-void cifsd_file_cache_destroy(void)
+void cifsd_local_file_cache_destroy(struct cifsd_sess *sess)
 {
-	cifsd_cache_destroy(&file_cache);
+	cifsd_cache_destroy(&sess->file_cache.cache);
+	cifsd_hash_destroy(&sess->file_cache.hash);
+}
+
+int cifsd_global_file_cache_init(void)
+{
+	int ret = cifsd_cache_init(&file_cache.cache,
+				   __cache_lookup_fn,
+				   __cache_destructor_fn);
+	if (ret)
+		return ret;
+
+	return cifsd_hash_init(&file_cache.hash,
+				7,
+				16,
+				__hash_lookup_fn,
+				__hash_destructor_fn);
+}
+
+void cifsd_global_file_cache_destroy(void)
+{
+	cifsd_cache_destroy(&file_cache.cache);
+	cifsd_hash_destroy(&file_cache.hash);
 }

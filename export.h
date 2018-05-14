@@ -26,6 +26,7 @@
 #include "ntlmssp.h"
 
 #include "management/user.h"
+#include "file_cache.h"
 
 #ifdef CONFIG_CIFS_SMB2_SERVER
 #include "smb2pdu.h"
@@ -103,6 +104,7 @@ struct cifsd_sess {
 	bool is_anonymous;
 	bool is_guest;
 	struct fidtable_desc fidtable;
+	struct cifsd_file_cache file_cache;
 	int state;
 	__u8 *Preauth_HashValue;
 	struct cifsd_pipe *pipe_desc[MAX_PIPE];
