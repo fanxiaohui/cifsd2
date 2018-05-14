@@ -190,7 +190,7 @@ struct cifsd_file_ {
 #define CIFSD_FILE_INODE(f)	\
 	((f)->f_inode)
 
-struct cifsd_file__cache {
+struct cifsd_file_cache {
 	struct cifsd_cache	cache;
 	struct cifsd_hash	hash;
 };
