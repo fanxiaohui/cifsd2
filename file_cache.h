@@ -48,7 +48,7 @@
 struct cifsd_tcp_conn;
 struct cifsd_sess;
 
-struct smb_readdir_data {
+struct cifsd_readdir_data {
 	struct dir_context	ctx;
 	char			*dirent;
 	unsigned int		used;
@@ -57,7 +57,7 @@ struct smb_readdir_data {
 	unsigned int		file_attr;
 };
 
-struct smb_dirent {
+struct cifsd_dirent {
 	__le64		ino;
 	__le64		offset;
 	__le32		d_type;
@@ -65,13 +65,13 @@ struct smb_dirent {
 	char		name[];
 };
 
-struct notification {
+struct cifsd_notification {
 	unsigned int		mode;
 	struct list_head	queuelist;
 	struct smb_work		*work;
 };
 
-struct cifsd_lock {
+struct cifsd_lock_ {
 	struct file_lock	*fl;
 	struct list_head	glist;
 	struct list_head	llist;
@@ -84,27 +84,27 @@ struct cifsd_lock {
 	struct smb_work	*work;
 };
 
-struct stream {
+struct cifsd_stream {
 	char		*name;
 	int		type;
 	ssize_t		size;
 };
 
-enum cifsd_pipe_type {
-	SRVSVC,
-	WINREG,
-	LANMAN,
-	MAX_PIPE
+enum cifsd_pipe_type_ {
+	PIPE_SRVSVC,
+	PIPE_WINREG,
+	PIPE_LANMAN,
+	PIPE_MAX
 };
 
-struct cifsd_pipe_table {
+struct cifsd_pipe_table_ {
 	char		pipename[32];
 	unsigned int	pipetype;
 };
 
 #define INVALID_PIPE   0xFFFFFFFF
 
-struct cifsd_pipe {
+struct cifsd_pipe_ {
 	unsigned int		id;
 	char			*data;
 	int			pkt_type;
@@ -122,7 +122,7 @@ struct cifsd_pipe {
 
 struct cifsd_inode;
 
-struct cifsd_file {
+struct cifsd_file_ {
 	struct file			*f_filp;
 	struct cifsd_inode		*f_inode;
 
@@ -135,7 +135,7 @@ struct cifsd_file {
 
 	struct timespec			open_time;
 	/* if ls is happening on directory, below is valid*/
-	struct smb_readdir_data		readdir_data;
+	struct cifsd_readdir_data	readdir_data;
 	int				dot_dotdot[2];
 	int				dirent_offset;
 	/* oplock info */
@@ -158,7 +158,7 @@ struct cifsd_file {
 	__le32				fattr;
 	__u64				create_time;
 
-	struct stream			stream;
+	struct cifsd_stream		stream;
 	struct list_head		f_ino_list;
 	struct hlist_node		notify_node;
 	struct list_head		queue;
@@ -190,17 +190,17 @@ struct cifsd_file {
 #define CIFSD_FILE_INODE(f)	\
 	((f)->f_inode)
 
-struct cifsd_file_cache {
+struct cifsd_file__cache {
 	struct cifsd_cache	cache;
 	struct cifsd_hash	hash;
 };
 
-int cifsd_file_cache_insert(struct cifsd_file *filp);
-struct cifsd_file *cifsd_file_cache_lookup(unsigned long key);
-void cifsd_file_put(struct cifsd_file *filp);
+int cifsd_file_cache_insert(struct cifsd_file_ *filp);
+struct cifsd_file_ *cifsd_file_cache_lookup(unsigned long key);
+void cifsd_file_put(struct cifsd_file_ *filp);
 
-struct cifsd_file *cifsd_file_open(struct file *file);
-void cifsd_file_close(struct cifsd_file *filp);
+struct cifsd_file_ *cifsd_file_open(struct file *file);
+void cifsd_file_close(struct cifsd_file_ *filp);
 
 int cifsd_file_cache_init(void);
 void cifsd_file_cache_destroy(void);

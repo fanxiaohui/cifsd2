@@ -77,7 +77,7 @@ struct cifsd_inode *cifsd_inode_cache_lookup(unsigned long key)
 }
 
 static int __cifsd_inode_open(struct cifsd_inode *ino,
-			      struct cifsd_file *filp)
+			      struct cifsd_file_ *filp)
 {
 	if (!cifsd_inode_get(ino))
 		return -EINVAL;
@@ -102,7 +102,7 @@ static int __cifsd_inode_open(struct cifsd_inode *ino,
 	return 0;
 }
 
-struct cifsd_inode *cifsd_inode_open(struct cifsd_file *filp)
+struct cifsd_inode *cifsd_inode_open(struct cifsd_file_ *filp)
 {
 	struct cifsd_inode *ino;
 	unsigned long key = (unsigned long)CIFSD_FILE_VFS_INODE(filp);
@@ -139,7 +139,7 @@ struct cifsd_inode *cifsd_inode_open(struct cifsd_file *filp)
 	return ino;
 }
 
-void cifsd_inode_close(struct cifsd_file *filp)
+void cifsd_inode_close(struct cifsd_file_ *filp)
 {
 	spin_lock(&CIFSD_FILE_INODE(filp)->i_lock);
 	list_del(&filp->f_ino_list);
@@ -148,7 +148,7 @@ void cifsd_inode_close(struct cifsd_file *filp)
 	cifsd_inode_put(CIFSD_FILE_INODE(filp));
 }
 
-void cifsd_inode_set_delete_on_close(struct cifsd_file *filp)
+void cifsd_inode_set_delete_on_close(struct cifsd_file_ *filp)
 {
 	struct cifsd_inode *ino = CIFSD_FILE_INODE(filp);
 
@@ -156,8 +156,10 @@ void cifsd_inode_set_delete_on_close(struct cifsd_file *filp)
 		ino->i_flags |= CIFSD_INODE_UNLINK_ON_CLOSE;
 }
 
-void cifsd_inode_clear_delete_on_close(struct cifsd_file *filp)
+void cifsd_inode_clear_delete_on_close(struct cifsd_file_ *filp)
 {
+	struct cifsd_inode *ino = CIFSD_FILE_INODE(filp);
+
 	ino->i_flags &= ~CIFSD_INODE_UNLINK_ON_CLOSE;
 }
 

@@ -29,8 +29,8 @@ static struct cifsd_cache file_cache;
 
 static void cifsd_file_free(struct work_struct *work)
 {
-	struct cifsd_file *filp = container_of(work,
-					       struct cifsd_file,
+	struct cifsd_file_ *filp = container_of(work,
+					       struct cifsd_file_,
 					       __free_work);
 
 	kfree(filp->stream.name);
@@ -39,19 +39,19 @@ static void cifsd_file_free(struct work_struct *work)
 
 static void __destructor_fn(void *val)
 {
-	struct cifsd_file *filp = (struct cifsd_file *)val;
+	struct cifsd_file_ *filp = (struct cifsd_file_ *)val;
 
 	schedule_work(&filp->__free_work);
 }
 
-static void *cifsd_file_get(struct cifsd_file *filp)
+static void *cifsd_file_get(struct cifsd_file_ *filp)
 {
 	if (!atomic_inc_not_zero(&filp->__refcount))
 		return NULL;
         return filp;
 }
 
-void cifsd_file_put(struct cifsd_file *filp)
+void cifsd_file_put(struct cifsd_file_ *filp)
 {
 	if (!atomic_dec_and_test(&filp->__refcount))
 		return;
@@ -60,26 +60,26 @@ void cifsd_file_put(struct cifsd_file *filp)
 
 static void *__lookup_fn(void *val)
 {
-	struct cifsd_file *filp = (struct cifsd_file *)val;
+	struct cifsd_file_ *filp = (struct cifsd_file_ *)val;
 
 	if (!filp->f_filp)
 		return NULL;
 	return cifsd_file_get(filp);
 }
 
-int cifsd_file_cache_insert(struct cifsd_file *filp)
+int cifsd_file_cache_insert(struct cifsd_file_ *filp)
 {
 	return 0;
 }
 
-struct cifsd_file *cifsd_file_cache_lookup(unsigned long key)
+struct cifsd_file_ *cifsd_file_cache_lookup(unsigned long key)
 {
 	return NULL;
 }
 
-struct cifsd_file *cifsd_file_open(struct file *file)
+struct cifsd_file_ *cifsd_file_open(struct file *file)
 {
-	struct cifsd_file *filp;
+	struct cifsd_file_ *filp;
 	struct cifsd_inode *inode;
 
 	filp = cifsd_alloc_file_struct();
@@ -101,14 +101,14 @@ struct cifsd_file *cifsd_file_open(struct file *file)
 	return filp;
 }
 
-void cifsd_file_close(struct cifsd_file *filp)
+void cifsd_file_close(struct cifsd_file_ *filp)
 {
 	struct file *vfs_filp;
 
 	if (filp->symlink_filp)
 		vfs_filp = filp->symlink_filp;
 
-	close_id_del_oplock(filp);
+	//close_id_del_oplock(filp);
 
 	cifsd_inode_close(filp);
 	cifsd_file_put(filp);

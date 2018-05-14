@@ -50,12 +50,12 @@ struct cifsd_inode *cifsd_inode_cache_lookup(unsigned long key);
 
 void cifsd_inode_put(struct cifsd_inode *ino);
 
-struct cifsd_file;
-struct cifsd_inode *cifsd_inode_open(struct cifsd_file *filp);
-void cifsd_inode_close(struct cifsd_file *filp);
+struct cifsd_file_;
+struct cifsd_inode *cifsd_inode_open(struct cifsd_file_ *filp);
+void cifsd_inode_close(struct cifsd_file_ *filp);
 
-void cifsd_inode_set_delete_on_close(struct cifsd_file *filp);
-void cifsd_inode_clear_delete_on_close(struct cifsd_file *filp);
+void cifsd_inode_set_delete_on_close(struct cifsd_file_ *filp);
+void cifsd_inode_clear_delete_on_close(struct cifsd_file_ *filp);
 
 int cifsd_inode_cache_init(void);
 void cifsd_inode_cache_destroy(void);
