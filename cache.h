@@ -157,7 +157,7 @@ static unsigned long ______hash_fn(struct cifsd_hash *ht, unsigned long key)
 	if (ht->key_size == 4 || ht->key_size == 8)
 		return hash_long((unsigned long)key, ht->size_bits);
 	return (unsigned long)jhash((void *)key, ht->key_size, 0) >>
-							(32 - ht->size_bits);
+					(BITS_PER_LONG - ht->size_bits);
 }
 
 static struct hlist_node*
