@@ -26,7 +26,7 @@
 #include "export.h"
 #include "oplock.h"
 
-static struct cifsd_file_cache file_cache;
+static struct cifsd_cache file_cache;
 
 static void cifsd_file_free(struct work_struct *work)
 {
@@ -159,21 +159,12 @@ void cifsd_local_file_cache_destroy(struct cifsd_sess *sess)
 
 int cifsd_global_file_cache_init(void)
 {
-	int ret = cifsd_cache_init(&file_cache.cache,
-				   __cache_lookup_fn,
-				   __cache_destructor_fn);
-	if (ret)
-		return ret;
-
-	return cifsd_hash_init(&file_cache.hash,
-				7,
-				16,
-				__hash_lookup_fn,
-				__hash_destructor_fn);
+	return cifsd_cache_init(&file_cache,
+				__cache_lookup_fn,
+				__cache_destructor_fn);
 }
 
 void cifsd_global_file_cache_destroy(void)
 {
-	cifsd_cache_destroy(&file_cache.cache);
-	cifsd_hash_destroy(&file_cache.hash);
+	cifsd_cache_destroy(&file_cache);
 }
