@@ -122,6 +122,8 @@ struct cifsd_pipe_ {
 
 struct cifsd_inode;
 
+#define CIFSD_FILE_UID_SIZE	16
+
 struct cifsd_file_ {
 	struct file			*f_filp;
 	struct cifsd_inode		*f_inode;
@@ -166,9 +168,9 @@ struct cifsd_file_ {
 	spinlock_t			f_lock;
 	wait_queue_head_t		wq;
 	int				f_state;
-	char				client_guid[16];
-	char				create_guid[16];
-	char				app_instance_id[16];
+	char				client_guid[CIFSD_FILE_UID_SIZE];
+	char				create_guid[CIFSD_FILE_UID_SIZE];
+	char				app_instance_id[CIFSD_FILE_UID_SIZE];
 	struct hlist_node		file_cache_list;
 	int				durable_timeout;
 	int				pid; /* for SMB1 */

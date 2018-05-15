@@ -144,7 +144,7 @@ int cifsd_local_file_cache_init(struct cifsd_sess *sess)
 
 	return cifsd_hash_init(&sess->file_cache.hash,
 				7,
-				16,
+				CIFSD_FILE_UID_SIZE,
 				__hash_lookup_fn,
 				__hash_destructor_fn);
 }
