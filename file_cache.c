@@ -38,11 +38,6 @@ static void cifsd_file_free(struct work_struct *work)
 	kfree(filp);
 }
 
-void __destructor_fn(struct cifsd_file_ *filp)
-{
-
-}
-
 static void __cache_destructor_fn(void *val)
 {
 	struct cifsd_file_ *filp = (struct cifsd_file_ *)val;
@@ -69,7 +64,7 @@ void cifsd_file_put(struct cifsd_file_ *filp)
 {
 	if (!atomic_dec_and_test(&filp->__refcount))
 		return;
-	__destructor_fn(filp);
+	__cache_destructor_fn(filp);
 }
 
 static void *__cache_lookup_fn(void *val)
