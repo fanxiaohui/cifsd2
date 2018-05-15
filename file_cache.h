@@ -178,6 +178,7 @@ struct cifsd_file_ {
 	/* last lock failure start offset for SMB1 */
 	unsigned long long		llock_fstart;
 
+	struct hlist_node		lookup_hash;
 	atomic_t			__refcount;
 	struct work_struct		__free_work;
 };

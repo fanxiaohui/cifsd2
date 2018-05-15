@@ -52,6 +52,10 @@ static void __cache_destructor_fn(void *val)
 
 static void __hash_destructor_fn(struct hlist_node *node)
 {
+	struct cifsd_file_ *filp = container_of(node,
+					       struct cifsd_file_,
+					       lookup_hash);
+	cifsd_file_put(filp);
 }
 
 static void *cifsd_file_get(struct cifsd_file_ *filp)
