@@ -33,9 +33,14 @@ static void cifsd_file_free(struct work_struct *work)
 	struct cifsd_file_ *filp = container_of(work,
 					       struct cifsd_file_,
 					       __free_work);
+	struct file *vfs_filp;
+
+	if (filp->symlink_filp)
+		vfs_filp = filp->symlink_filp;
 
 	kfree(filp->stream.name);
 	kfree(filp);
+	filp_close(vfs_filp, (struct files_struct *)vfs_filp);
 }
 
 static void __cache_destructor_fn(void *val)
@@ -123,16 +128,10 @@ struct cifsd_file_ *cifsd_file_open(struct file *file)
 
 void cifsd_file_close(struct cifsd_file_ *filp)
 {
-	struct file *vfs_filp;
-
-	if (filp->symlink_filp)
-		vfs_filp = filp->symlink_filp;
-
 	//close_id_del_oplock(filp);
 
 	cifsd_inode_close(filp);
 	cifsd_file_put(filp);
-	filp_close(vfs_filp, (struct files_struct *)vfs_filp);
 }
 
 int cifsd_local_file_cache_init(struct cifsd_sess *sess)
