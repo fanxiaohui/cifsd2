@@ -148,6 +148,7 @@ static int __add_file_to_id_hash(struct cifsd_sess *sess,
 		cifsd_hash_insert(&sess->file_cache.hash,
 				  (unsigned long)filp->app_instance_id,
 				  &filp->app_id_hash);
+	return 0;
 }
 #else
 int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
@@ -158,6 +159,12 @@ int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
 static struct cifsd_file_ *__global_file_cache_lookup(unsigned long key)
 {
 	return NULL;
+}
+
+static int __add_file_to_id_hash(struct cifsd_sess *sess,
+				 struct cifsd_file_ *filp)
+{
+	return 0;
 }
 #endif
 
