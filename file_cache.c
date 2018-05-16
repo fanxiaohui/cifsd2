@@ -89,18 +89,38 @@ static int __hash_lookup_fn(struct hlist_node *node, unsigned long id)
 int cifsd_add_to_local_file_cache(struct cifsd_sess *sess,
 				  struct cifsd_file_ *filp)
 {
+	int ret;
+	unsigned long id;
+
+	ret = cifsd_cache_insert_index(&sess->file_cache.cache, filp, &id);
+	if (ret)
+		return ret;
+
+	filp->volatile_id = id;
 	return 0;
 }
 
 int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
 {
+	int ret;
+	unsigned long id;
+
+	ret = cifsd_cache_insert_index(&file_cache, filp, &id);
+	if (ret)
+		return ret;
+
+	filp->persistent_id = id;
 	return 0;
 }
 
 struct cifsd_file_ *cifsd_file_cache_lookup(struct cifsd_sess *sess,
 					    unsigned long key)
 {
-	return NULL;
+	struct cifsd_file_ *filp = cifsd_cache_lookup(&sess->file_cache.cache,
+						      key);
+	if (filp)
+		return filp;
+	return cifsd_cache_lookup(&file_cache, key);
 }
 
 struct cifsd_file_ *cifsd_file_open(struct file *file)
