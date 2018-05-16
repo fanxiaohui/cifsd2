@@ -26,7 +26,9 @@
 #include "export.h"
 #include "oplock.h"
 
+#ifdef CONFIG_CIFS_SMB2_SERVER
 static struct cifsd_cache file_cache;
+#endif
 
 static void cifsd_file_free(struct work_struct *work)
 {
@@ -100,6 +102,7 @@ int cifsd_add_to_local_file_cache(struct cifsd_sess *sess,
 	return 0;
 }
 
+#ifdef CONFIG_CIFS_SMB2_SERVER
 int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
 {
 	int ret;
@@ -113,6 +116,22 @@ int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
 	return 0;
 }
 
+struct cifsd_file_ *__global_file_cache_lookup(unsigned long key)
+{
+	return cifsd_cache_lookup(&file_cache, key);
+}
+#else
+int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
+{
+	return 0;
+}
+
+struct cifsd_file_ *__global_file_cache_lookup(unsigned long key)
+{
+	return NULL;
+}
+#endif
+
 struct cifsd_file_ *cifsd_file_cache_lookup(struct cifsd_sess *sess,
 					    unsigned long key)
 {
@@ -120,7 +139,7 @@ struct cifsd_file_ *cifsd_file_cache_lookup(struct cifsd_sess *sess,
 						      key);
 	if (filp)
 		return filp;
-	return cifsd_cache_lookup(&file_cache, key);
+	return __global_file_cache_lookup(key);
 }
 
 struct cifsd_file_ *cifsd_file_open(struct file *file)
@@ -176,6 +195,7 @@ void cifsd_local_file_cache_destroy(struct cifsd_sess *sess)
 	cifsd_hash_destroy(&sess->file_cache.hash);
 }
 
+#ifdef CONFIG_CIFS_SMB2_SERVER
 int cifsd_global_file_cache_init(void)
 {
 	return cifsd_cache_init(&file_cache,
@@ -187,3 +207,13 @@ void cifsd_global_file_cache_destroy(void)
 {
 	cifsd_cache_destroy(&file_cache);
 }
+#else
+int cifsd_global_file_cache_init(void)
+{
+	return 0;
+}
+
+void cifsd_global_file_cache_destroy(void)
+{
+}
+#endif
