@@ -199,7 +199,8 @@ struct cifsd_file_cache {
 	struct cifsd_hash	hash;
 };
 
-int cifsd_add_to_local_file_cache(struct cifsd_file_ *filp);
+int cifsd_add_to_local_file_cache(struct cifsd_sess *sess,
+				  struct cifsd_file_ *filp);
 int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp);
 
 struct cifsd_file_ *cifsd_file_cache_lookup(struct cifsd_sess *sess,

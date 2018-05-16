@@ -86,7 +86,8 @@ static int __hash_lookup_fn(struct hlist_node *node, unsigned long id)
 	return 0;
 }
 
-int cifsd_add_to_local_file_cache(struct cifsd_file_ *filp)
+int cifsd_add_to_local_file_cache(struct cifsd_sess *sess,
+				  struct cifsd_file_ *filp)
 {
 	return 0;
 }
