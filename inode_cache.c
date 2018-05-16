@@ -29,7 +29,6 @@ static void cifsd_inode_free(struct work_struct *work)
 					       struct cifsd_inode,
 					       __free_work);
 
-	cifsd_cache_remove(&inode_cache, CIFSD_INODE_LOOKUP_KEY(ino));
 	kfree(ino->i_stream_name);
 	kfree(ino);
 }
@@ -52,6 +51,8 @@ void cifsd_inode_put(struct cifsd_inode *ino)
 {
 	if (!atomic_dec_and_test(&ino->__refcount))
 		return;
+
+	cifsd_cache_remove(&inode_cache, CIFSD_INODE_LOOKUP_KEY(ino));
 	__destructor_fn(ino);
 }
 
