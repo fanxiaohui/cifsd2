@@ -56,7 +56,7 @@ static void __hash_destructor_fn(struct hlist_node *node)
 {
 	struct cifsd_file_ *filp = container_of(node,
 					       struct cifsd_file_,
-					       lookup_hash);
+					       client_id_hash);
 	cifsd_file_put(filp);
 }
 
@@ -119,6 +119,35 @@ int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
 static struct cifsd_file_ *__global_file_cache_lookup(unsigned long key)
 {
 	return cifsd_cache_lookup(&file_cache, key);
+}
+
+static bool is_empty_id(char *id, size_t sz)
+{
+	int i;
+
+	for (i = 0; i < sz; i++)
+		if (id[i] != 0x00)
+			return false;
+	return true;
+}
+
+static int __add_file_to_id_hash(struct cifsd_sess *sess,
+				 struct cifsd_file_ *filp)
+{
+	if (!is_empty_id(filp->client_guid, CIFSD_FILE_UID_SIZE))
+		cifsd_hash_insert(&sess->file_cache.hash,
+				  (unsigned long)filp->client_guid,
+				  &filp->client_id_hash);
+
+	if (!is_empty_id(filp->create_guid, CIFSD_FILE_UID_SIZE))
+		cifsd_hash_insert(&sess->file_cache.hash,
+				  (unsigned long)filp->create_guid,
+				  &filp->create_id_hash);
+
+	if (!is_empty_id(filp->app_instance_id, CIFSD_FILE_UID_SIZE))
+		cifsd_hash_insert(&sess->file_cache.hash,
+				  (unsigned long)filp->app_instance_id,
+				  &filp->app_id_hash);
 }
 #else
 int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
@@ -183,7 +212,7 @@ int cifsd_local_file_cache_init(struct cifsd_sess *sess)
 		return ret;
 
 	return cifsd_hash_init(&sess->file_cache.hash,
-				7,
+				5,
 				CIFSD_FILE_UID_SIZE,
 				__hash_lookup_fn,
 				__hash_destructor_fn);
