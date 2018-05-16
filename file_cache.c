@@ -116,7 +116,7 @@ int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
 	return 0;
 }
 
-struct cifsd_file_ *__global_file_cache_lookup(unsigned long key)
+static struct cifsd_file_ *__global_file_cache_lookup(unsigned long key)
 {
 	return cifsd_cache_lookup(&file_cache, key);
 }
@@ -126,7 +126,7 @@ int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
 	return 0;
 }
 
-struct cifsd_file_ *__global_file_cache_lookup(unsigned long key)
+static struct cifsd_file_ *__global_file_cache_lookup(unsigned long key)
 {
 	return NULL;
 }

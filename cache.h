@@ -186,7 +186,6 @@ ______cifsd_hash_lookup(struct cifsd_hash *ht,
 	return node;
 }
 
-
 static struct hlist_node*
 cifsd_hash_lookup_aux_key(struct cifsd_hash *ht,
 			  unsigned long key,
