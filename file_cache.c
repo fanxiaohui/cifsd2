@@ -134,17 +134,17 @@ static bool is_empty_id(char *id, size_t sz)
 static int __add_file_to_id_hash(struct cifsd_sess *sess,
 				 struct cifsd_file_ *filp)
 {
-	if (!is_empty_id(filp->client_guid, CIFSD_FILE_UID_SIZE))
+	if (!is_empty_id(filp->client_guid, SMB2_CREATE_GUID_SIZE))
 		cifsd_hash_insert(&sess->file_cache.hash,
 				  (unsigned long)filp->client_guid,
 				  &filp->client_id_hash);
 
-	if (!is_empty_id(filp->create_guid, CIFSD_FILE_UID_SIZE))
+	if (!is_empty_id(filp->create_guid, SMB2_CREATE_GUID_SIZE))
 		cifsd_hash_insert(&sess->file_cache.hash,
 				  (unsigned long)filp->create_guid,
 				  &filp->create_id_hash);
 
-	if (!is_empty_id(filp->app_instance_id, CIFSD_FILE_UID_SIZE))
+	if (!is_empty_id(filp->app_instance_id, SMB2_CREATE_GUID_SIZE))
 		cifsd_hash_insert(&sess->file_cache.hash,
 				  (unsigned long)filp->app_instance_id,
 				  &filp->app_id_hash);
@@ -220,7 +220,7 @@ int cifsd_local_file_cache_init(struct cifsd_sess *sess)
 
 	return cifsd_hash_init(&sess->file_cache.hash,
 				5,
-				CIFSD_FILE_UID_SIZE,
+				SMB2_CREATE_GUID_SIZE,
 				__hash_lookup_fn,
 				__hash_destructor_fn);
 }
