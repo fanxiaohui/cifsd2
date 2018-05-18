@@ -150,7 +150,97 @@ static int __add_file_to_id_hash(struct cifsd_sess *sess,
 				  &filp->app_id_hash);
 	return 0;
 }
+
+static int hash_lookup_client_id(struct hlist_node *node, unsigned long id)
+{
+	struct cifsd_file_ *fp;
+
+	fp = container_of(node, struct cifsd_file_, client_id_hash);
+	if (!memcmp(fp->client_guid, (char *)id, SMB2_CREATE_GUID_SIZE))
+		return 0;
+	return -1;
+}
+
+static int hash_lookup_create_id(struct hlist_node *node, unsigned long id)
+{
+	struct cifsd_file_ *fp;
+
+	fp = container_of(node, struct cifsd_file_, create_id_hash);
+	if (!memcmp(fp->create_guid, (char *)id, SMB2_CREATE_GUID_SIZE))
+		return 0;
+	return -1;
+}
+
+static int hash_lookup_app_id(struct hlist_node *node, unsigned long id)
+{
+	struct cifsd_file_ *fp;
+
+	fp = container_of(node, struct cifsd_file_, app_id_hash);
+	if (!memcmp(fp->app_instance_id, (char *)id, SMB2_CREATE_GUID_SIZE))
+		return 0;
+	return -1;
+}
+
+struct cifsd_file_ *cifsd_file_cache_lookup_client_id(struct cifsd_sess *sess,
+						      char *id)
+{
+	struct hlist_node* fp;
+
+	fp = cifsd_hash_lookup_aux_key(&sess->file_cache.hash,
+				       (unsigned long)id,
+				       hash_lookup_client_id);
+	if (fp)
+		return container_of(fp, struct cifsd_file_, client_id_hash);
+	return NULL;
+}
+
+struct cifsd_file_ *cifsd_file_cache_lookup_create_id(struct cifsd_sess *sess,
+						      char *id)
+{
+	struct hlist_node* fp;
+
+	fp = cifsd_hash_lookup_aux_key(&sess->file_cache.hash,
+				       (unsigned long)id,
+				       hash_lookup_client_id);
+	if (fp)
+		return container_of(fp, struct cifsd_file_, client_id_hash);
+	return NULL;
+
+}
+
+struct cifsd_file_ *cifsd_file_cache_lookup_app_id(struct cifsd_sess *sess,
+						   char *id)
+{
+	struct hlist_node* fp;
+
+	fp = cifsd_hash_lookup_aux_key(&sess->file_cache.hash,
+				       (unsigned long)id,
+				       hash_lookup_client_id);
+	if (fp)
+		return container_of(fp, struct cifsd_file_, client_id_hash);
+	return NULL;
+
+}
 #else
+struct cifsd_file_ *cifsd_file_cache_lookup_client_id(struct cifsd_sess *sess,
+						      char *id)
+{
+	return NULL;
+}
+
+struct cifsd_file_ *cifsd_file_cache_lookup_create_id(struct cifsd_sess *sess,
+						      char *id)
+{
+	return NULL;
+
+}
+
+struct cifsd_file_ *cifsd_file_cache_lookup_app_id(struct cifsd_sess *sess,
+						   char *id)
+{
+	return NULL;
+}
+
 int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
 {
 	return 0;

@@ -199,6 +199,13 @@ struct cifsd_file_cache {
 	struct cifsd_hash	hash;
 };
 
+struct cifsd_file_ *cifsd_file_cache_lookup_client_id(struct cifsd_sess *sess,
+						      char *id);
+struct cifsd_file_ *cifsd_file_cache_lookup_create_id(struct cifsd_sess *sess,
+						      char *id);
+struct cifsd_file_ *cifsd_file_cache_lookup_app_id(struct cifsd_sess *sess,
+						   char *id);
+
 int cifsd_add_to_local_file_cache(struct cifsd_sess *sess,
 				  struct cifsd_file_ *filp);
 int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp);
