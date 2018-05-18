@@ -127,7 +127,7 @@ int cifsd_cache_init(struct cifsd_cache *cache,
 
 /***********************************************************************/
 
-static unsigned long ______hash_fn(struct cifsd_hash *ht, unsigned long key)
+static unsigned long hash_fn(struct cifsd_hash *ht, unsigned long key)
 {
 	if (ht->key_size == 4 || ht->key_size == 8)
 		return hash_long((unsigned long)key, ht->size_bits);
@@ -136,17 +136,17 @@ static unsigned long ______hash_fn(struct cifsd_hash *ht, unsigned long key)
 }
 
 static struct hlist_node*
-______cifsd_hash_lookup(struct cifsd_hash *ht,
-			unsigned long key,
-			int (*lookup_fn)(struct hlist_node *node,
-					 unsigned long id))
+__cifsd_hash_lookup(struct cifsd_hash *ht,
+		    unsigned long key,
+		    int (*lookup_fn)(struct hlist_node *node,
+				     unsigned long id))
 {
 	int cmp = -EINVAL;
 	unsigned long k;
 	struct hlist_head *hhd;
 	struct hlist_node *node;
 
-	k = ______hash_fn(ht, key);
+	k = hash_fn(ht, key);
 	hhd = &ht->hash[k];
 
 	down_read(&ht->lock);
@@ -167,20 +167,20 @@ cifsd_hash_lookup_aux_key(struct cifsd_hash *ht,
 			  int (*lookup_fn)(struct hlist_node *node,
 					   unsigned long id))
 {
-	return ______cifsd_hash_lookup(ht, key, lookup_fn);
+	return __cifsd_hash_lookup(ht, key, lookup_fn);
 }
 
 struct hlist_node*
 cifsd_hash_lookup(struct cifsd_hash *ht, unsigned long key)
 {
-	return ______cifsd_hash_lookup(ht, key, ht->lookup_fn);
+	return __cifsd_hash_lookup(ht, key, ht->lookup_fn);
 }
 
 int cifsd_hash_insert(struct cifsd_hash *ht,
 		      unsigned long key,
 		      struct hlist_node *node)
 {
-	unsigned long k = ______hash_fn(ht, key);
+	unsigned long k = hash_fn(ht, key);
 
 	down_write(&ht->lock);
 	hlist_add_head(node, &ht->hash[k]);
