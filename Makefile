@@ -6,6 +6,7 @@ cifsd-y := 	export.o unicode.o encrypt.o auth.o \
 		management/user.o\
 		buffer_pool.o \
 		transport.o \
+		cache.o \
 		inode_cache.o \
 		file_cache.o \
 		server.o
