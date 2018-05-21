@@ -169,7 +169,6 @@ struct cifsd_file_ {
 	char				client_guid[SMB2_CREATE_GUID_SIZE];
 	char				create_guid[SMB2_CREATE_GUID_SIZE];
 	char				app_instance_id[SMB2_CREATE_GUID_SIZE];
-	struct hlist_node		file_cache_list;
 	int				durable_timeout;
 	int				pid; /* for SMB1 */
 

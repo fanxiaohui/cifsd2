@@ -131,6 +131,14 @@ static bool is_empty_id(char *id, size_t sz)
 	return true;
 }
 
+static void __remove_file_from_id_hash(struct cifsd_sess *sess,
+				       struct cifsd_file_ *filp)
+{
+	cifsd_hash_remove(&sess->file_cache.hash, &filp->client_id_hash);
+	cifsd_hash_remove(&sess->file_cache.hash, &filp->create_id_hash);
+	cifsd_hash_remove(&sess->file_cache.hash, &filp->app_id_hash);
+}
+
 static int __add_file_to_id_hash(struct cifsd_sess *sess,
 				 struct cifsd_file_ *filp)
 {
@@ -256,6 +264,11 @@ static int __add_file_to_id_hash(struct cifsd_sess *sess,
 {
 	return 0;
 }
+
+static void __remove_file_from_id_hash(struct cifsd_sess *sess,
+				       struct cifsd_file_ *filp)
+{
+}
 #endif
 
 struct cifsd_file_ *cifsd_file_cache_lookup(struct cifsd_sess *sess,
@@ -289,11 +302,15 @@ struct cifsd_file_ *cifsd_file_open(struct file *file)
 
 	filp->f_filp = file;
 	filp->f_inode = inode;
+	INIT_HLIST_NODE(&filp->client_id_hash);
+	INIT_HLIST_NODE(&filp->create_id_hash);
+	INIT_HLIST_NODE(&filp->app_id_hash);
 	return filp;
 }
 
 void cifsd_file_close(struct cifsd_file_ *filp)
 {
+	__remove_file_from_id_hash(filp->sess, filp);
 	//close_id_del_oplock(filp);
 
 	cifsd_inode_close(filp);
