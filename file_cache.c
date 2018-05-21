@@ -195,9 +195,9 @@ struct cifsd_file_ *cifsd_file_cache_lookup_create_id(struct cifsd_sess *sess,
 
 	fp = cifsd_hash_lookup_aux_key(&sess->file_cache.hash,
 				       (unsigned long)id,
-				       hash_lookup_client_id);
+				       hash_lookup_create_id);
 	if (fp)
-		return container_of(fp, struct cifsd_file_, client_id_hash);
+		return container_of(fp, struct cifsd_file_, create_id_hash);
 	return NULL;
 
 }
@@ -209,9 +209,9 @@ struct cifsd_file_ *cifsd_file_cache_lookup_app_id(struct cifsd_sess *sess,
 
 	fp = cifsd_hash_lookup_aux_key(&sess->file_cache.hash,
 				       (unsigned long)id,
-				       hash_lookup_client_id);
+				       hash_lookup_app_id);
 	if (fp)
-		return container_of(fp, struct cifsd_file_, client_id_hash);
+		return container_of(fp, struct cifsd_file_, app_id_hash);
 	return NULL;
 
 }
