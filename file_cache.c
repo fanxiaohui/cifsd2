@@ -88,20 +88,6 @@ static int __hash_lookup_fn(struct hlist_node *node, unsigned long id)
 	return 0;
 }
 
-int cifsd_add_to_local_file_cache(struct cifsd_sess *sess,
-				  struct cifsd_file_ *filp)
-{
-	int ret;
-	unsigned long id;
-
-	ret = cifsd_cache_insert_index(&sess->file_cache.cache, filp, &id);
-	if (ret)
-		return ret;
-
-	filp->volatile_id = id;
-	return 0;
-}
-
 #ifdef CONFIG_CIFS_SMB2_SERVER
 int cifsd_add_to_global_file_cache(struct cifsd_file_ *filp)
 {
@@ -270,6 +256,21 @@ static void __remove_file_from_id_hash(struct cifsd_sess *sess,
 {
 }
 #endif
+
+int cifsd_add_to_local_file_cache(struct cifsd_sess *sess,
+				  struct cifsd_file_ *filp)
+{
+	int ret;
+	unsigned long id;
+
+	ret = cifsd_cache_insert_index(&sess->file_cache.cache, filp, &id);
+	if (ret)
+		return ret;
+
+	__add_file_to_id_hash(filp->sess, filp);
+	filp->volatile_id = id;
+	return 0;
+}
 
 struct cifsd_file_ *cifsd_file_cache_lookup(struct cifsd_sess *sess,
 					    unsigned long key)
