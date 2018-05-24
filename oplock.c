@@ -640,7 +640,7 @@ static inline int compare_guid_key(struct oplock_info *opinfo,
  *
  * Return:      oplock(lease) object on success, otherwise NULL
  */
-struct oplock_info *same_client_has_lease(struct cifsd_mfile *mfp,
+struct oplock_info *same_client_has_lease(struct cifsd_inode *mfp,
 	char *client_guid, struct lease_ctx_info *lctx)
 {
 	int ret;
@@ -902,7 +902,7 @@ void destroy_lease_table(struct cifsd_tcp_conn *conn)
 	mutex_unlock(&lease_list_lock);
 }
 
-int find_same_lease_key(struct cifsd_sess *sess, struct cifsd_mfile *mfp,
+int find_same_lease_key(struct cifsd_sess *sess, struct cifsd_inode *mfp,
 		struct lease_ctx_info *lctx)
 {
 	struct oplock_info *opinfo;
@@ -1017,7 +1017,7 @@ int smb_grant_oplock(struct cifsd_work *work, int req_op_level, uint64_t pid,
 	struct cifsd_sess *sess = work->sess;
 	int err = 0;
 	struct oplock_info *opinfo = NULL, *prev_opinfo = NULL;
-	struct cifsd_mfile *mfp = fp->f_mfp;
+	struct cifsd_inode *mfp = fp->f_mfp;
 
 	/* not support directory lease */
 	if (S_ISDIR(file_inode(fp->filp)->i_mode)) {
@@ -1135,7 +1135,7 @@ err_out:
 int smb_break_all_write_oplock(struct cifsd_work *work,
 	struct cifsd_file *fp, int is_trunc)
 {
-	struct cifsd_mfile *mfp;
+	struct cifsd_inode *mfp;
 	struct oplock_info *brk_opinfo;
 
 	mfp = fp->f_mfp;
@@ -1170,7 +1170,7 @@ void smb_break_all_levII_oplock(struct cifsd_tcp_conn *conn,
 	struct cifsd_file *fp, int is_trunc)
 {
 	struct oplock_info *op, *brk_op, *optmp;
-	struct cifsd_mfile *mfp;
+	struct cifsd_inode *mfp;
 
 	mfp = fp->f_mfp;
 	op = fp->f_opinfo;

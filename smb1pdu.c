@@ -2222,7 +2222,7 @@ int smb_nt_create_andx(struct cifsd_work *work)
 	bool is_unicode;
 	bool is_relative_root = false;
 	struct cifsd_file *fp = NULL;
-	struct cifsd_mfile *parent_mfp;
+	struct cifsd_inode *parent_mfp;
 	int oplock_rsp = OPLOCK_NONE;
 	int share_ret;
 
@@ -4162,7 +4162,7 @@ int query_path_info(struct cifsd_work *work)
 	case SMB_INFO_STANDARD:
 	{
 		FILE_INFO_STANDARD *infos;
-		struct cifsd_mfile *mfp;
+		struct cifsd_inode *mfp;
 
 		cifsd_debug("SMB_INFO_STANDARD\n");
 		mfp = mfp_lookup_inode(path.dentry->d_inode);
@@ -4210,7 +4210,7 @@ int query_path_info(struct cifsd_work *work)
 	case SMB_QUERY_FILE_STANDARD_INFO:
 	{
 		FILE_STANDARD_INFO *standard_info;
-		struct cifsd_mfile *mfp;
+		struct cifsd_inode *mfp;
 		unsigned int delete_pending = 0;
 
 		cifsd_debug("SMB_QUERY_FILE_STANDARD_INFO\n");
@@ -4358,7 +4358,7 @@ int query_path_info(struct cifsd_work *work)
 	case SMB_QUERY_FILE_ALL_INFO:
 	{
 		FILE_ALL_INFO *ainfo;
-		struct cifsd_mfile *mfp;
+		struct cifsd_inode *mfp;
 		unsigned int delete_pending = 0;
 		char *filename;
 		int uni_filename_len, total_count = 72;
@@ -8288,7 +8288,7 @@ int smb_open_andx(struct cifsd_work *work)
 	int err;
 	struct cifsd_file *fp = NULL;
 	int oplock_rsp = OPLOCK_NONE, share_ret;
-	struct cifsd_mfile *parent_mfp;
+	struct cifsd_inode *parent_mfp;
 
 	rsp->hdr.Status.CifsError = NT_STATUS_UNSUCCESSFUL;
 
