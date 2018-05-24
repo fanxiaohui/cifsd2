@@ -1245,7 +1245,7 @@ int close_disconnected_handle(struct inode *inode)
 	bool unlinked = true;
 	LIST_HEAD(dispose);
 
-	ino = mfp_lookup_inode(inode);
+	ino = cifsd_inode_lookup_by_vfsinode(inode);
 	if (ino) {
 		struct cifsd_file *fp, *fptmp;
 
@@ -1298,7 +1298,7 @@ static inline int check_stream_mfp(struct cifsd_inode *ino,
 	return ret;
 }
 
-struct cifsd_inode *mfp_lookup(struct cifsd_file *fp)
+struct cifsd_inode *cifsd_inode_lookup(struct cifsd_file *fp)
 {
 	struct inode *inode = FP_INODE(fp);
 	struct hlist_head *head = inode_hashtable +
@@ -1319,8 +1319,7 @@ struct cifsd_inode *mfp_lookup(struct cifsd_file *fp)
 
 	return ret_ino;
 }
-
-struct cifsd_inode *mfp_lookup_inode(struct inode *inode)
+struct cifsd_inode *cifsd_inode_lookup_by_vfsinode(struct inode *inode)
 {
 	struct hlist_head *head = inode_hashtable +
 		inode_hash(inode->i_sb, inode->i_ino);
@@ -1339,7 +1338,7 @@ struct cifsd_inode *mfp_lookup_inode(struct inode *inode)
 	return ret_ino;
 }
 
-void insert_mfp_hash(struct cifsd_inode *ino)
+void cifsd_inode_insert(struct cifsd_inode *ino)
 {
 	struct hlist_head *b = inode_hashtable +
 		inode_hash(ino->m_inode->i_sb, ino->m_inode->i_ino);
@@ -1347,7 +1346,7 @@ void insert_mfp_hash(struct cifsd_inode *ino)
 	hlist_add_head(&ino->m_hash, b);
 }
 
-void remove_mfp_hash(struct cifsd_inode *ino)
+void cifsd_inode_remove(struct cifsd_inode *ino)
 {
 	hlist_del_init(&ino->m_hash);
 }
@@ -1380,7 +1379,7 @@ struct cifsd_inode *get_mfp(struct cifsd_file *fp)
 	int rc;
 
 	spin_lock(&inode_hash_lock);
-	ino = mfp_lookup(fp);
+	ino = cifsd_inode_lookup(fp);
 	spin_unlock(&inode_hash_lock);
 	if (ino)
 		return ino;
@@ -1397,9 +1396,9 @@ struct cifsd_inode *get_mfp(struct cifsd_file *fp)
 	}
 
 	spin_lock(&inode_hash_lock);
-	tmpino = mfp_lookup(fp);
+	tmpino = cifsd_inode_lookup(fp);
 	if (!tmpino) {
-		insert_mfp_hash(ino);
+		cifsd_inode_insert(ino);
 	} else {
 		kfree(ino);
 		ino = tmpino;
@@ -1410,13 +1409,13 @@ struct cifsd_inode *get_mfp(struct cifsd_file *fp)
 
 void mfp_free(struct cifsd_inode *ino)
 {
-	remove_mfp_hash(ino);
+	cifsd_inode_remove(ino);
 	if (ino->is_stream)
 		kfree(ino->stream_name);
 	kfree(ino);
 }
 
-void __init mfp_hash_init(void)
+void __init cifsd_inode_hash_init(void)
 {
 	unsigned int loop;
 	unsigned long numentries = 16384;

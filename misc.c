@@ -614,7 +614,7 @@ struct cifsd_file *find_fp_using_inode(struct inode *inode)
 	struct cifsd_inode *ino;
 	struct list_head *cur;
 
-	ino = mfp_lookup_inode(inode);
+	ino = cifsd_inode_lookup_by_vfsinode(inode);
 	if (!ino)
 		goto out;
 

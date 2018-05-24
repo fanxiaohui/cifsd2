@@ -2502,7 +2502,7 @@ int smb_nt_create_andx(struct cifsd_work *work)
 		}
 	}
 
-	f_parent_ino = mfp_lookup_inode(path.dentry->d_parent->d_inode);
+	f_parent_ino = cifsd_inode_lookup_by_vfsinode(path.dentry->d_parent->d_inode);
 	if (f_parent_ino) {
 		if (f_parent_ino->m_flags & S_DEL_PENDING) {
 			err = -EBUSY;
@@ -4165,7 +4165,7 @@ int query_path_info(struct cifsd_work *work)
 		struct cifsd_inode *ino;
 
 		cifsd_debug("SMB_INFO_STANDARD\n");
-		ino = mfp_lookup_inode(path.dentry->d_inode);
+		ino = cifsd_inode_lookup_by_vfsinode(path.dentry->d_inode);
 		if (ino) {
 			if (ino->m_flags & S_DEL_PENDING) {
 				rc = -EBUSY;
@@ -4214,7 +4214,7 @@ int query_path_info(struct cifsd_work *work)
 		unsigned int delete_pending = 0;
 
 		cifsd_debug("SMB_QUERY_FILE_STANDARD_INFO\n");
-		ino = mfp_lookup_inode(path.dentry->d_inode);
+		ino = cifsd_inode_lookup_by_vfsinode(path.dentry->d_inode);
 		if (ino) {
 			delete_pending = ino->m_flags & S_DEL_PENDING;
 			atomic_dec(&ino->m_count);
@@ -4364,7 +4364,7 @@ int query_path_info(struct cifsd_work *work)
 		int uni_filename_len, total_count = 72;
 
 		cifsd_debug("SMB_QUERY_FILE_ALL_INFO\n");
-		ino = mfp_lookup_inode(path.dentry->d_inode);
+		ino = cifsd_inode_lookup_by_vfsinode(path.dentry->d_inode);
 		if (ino) {
 			delete_pending = ino->m_flags & S_DEL_PENDING;
 			atomic_dec(&ino->m_count);
@@ -8370,7 +8370,7 @@ int smb_open_andx(struct cifsd_work *work)
 		generic_fillattr(path.dentry->d_inode, &stat);
 	}
 
-	f_parent_ino = mfp_lookup_inode(path.dentry->d_parent->d_inode);
+	f_parent_ino = cifsd_inode_lookup_by_vfsinode(path.dentry->d_parent->d_inode);
 	if (f_parent_ino) {
 		if (f_parent_ino->m_flags & S_DEL_PENDING) {
 			err = -EBUSY;

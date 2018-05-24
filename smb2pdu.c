@@ -2517,7 +2517,7 @@ int smb2_open(struct cifsd_work *work)
 		}
 	}
 
-	f_parent_ino = mfp_lookup_inode(path.dentry->d_parent->d_inode);
+	f_parent_ino = cifsd_inode_lookup_by_vfsinode(path.dentry->d_parent->d_inode);
 	if (f_parent_ino) {
 		if (f_parent_ino->m_flags & S_DEL_PENDING) {
 			atomic_dec(&f_parent_ino->m_count);
