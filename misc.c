@@ -611,24 +611,24 @@ int smb_check_shared_mode(struct file *filp, struct cifsd_file *curr_fp)
 struct cifsd_file *find_fp_using_inode(struct inode *inode)
 {
 	struct cifsd_file *lfp;
-	struct cifsd_inode *mfp;
+	struct cifsd_inode *ino;
 	struct list_head *cur;
 
-	mfp = mfp_lookup_inode(inode);
-	if (!mfp)
+	ino = mfp_lookup_inode(inode);
+	if (!ino)
 		goto out;
 
-	spin_lock(&mfp->m_lock);
-	list_for_each(cur, &mfp->m_fp_list) {
+	spin_lock(&ino->m_lock);
+	list_for_each(cur, &ino->m_fp_list) {
 		lfp = list_entry(cur, struct cifsd_file, node);
 		if (inode == FP_INODE(lfp)) {
-			atomic_dec(&mfp->m_count);
-			spin_unlock(&mfp->m_lock);
+			atomic_dec(&ino->m_count);
+			spin_unlock(&ino->m_lock);
 			return lfp;
 		}
 	}
-	atomic_dec(&mfp->m_count);
-	spin_unlock(&mfp->m_lock);
+	atomic_dec(&ino->m_count);
+	spin_unlock(&ino->m_lock);
 
 out:
 	return NULL;
