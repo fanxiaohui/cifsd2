@@ -17,6 +17,7 @@
  */
 
 #include <linux/slab.h>
+#include <linux/rcupdate.h>
 
 #include "cache.h"
 
@@ -26,7 +27,6 @@ void cifsd_cache_for_each(struct cifsd_cache *cache,
 	struct radix_tree_iter iter;
 	void **slot;
 
-	down_read(&cache->lock);
 	rcu_read_lock();
 	radix_tree_for_each_slot(slot, &cache->rt, &iter, 0) {
 		void *val = radix_tree_deref_slot(slot);
@@ -37,7 +37,6 @@ void cifsd_cache_for_each(struct cifsd_cache *cache,
 		}
 	}
 	rcu_read_unlock();
-	up_read(&cache->lock);
 }
 
 void *cifsd_cache_lookup(struct cifsd_cache *cache, unsigned long id)
@@ -105,7 +104,10 @@ void cifsd_cache_destroy(struct cifsd_cache *cache)
 	radix_tree_for_each_slot(slot, &cache->rt, &iter, 0) {
 		void *val = radix_tree_deref_slot(slot);
 
+		down_write(&cache->lock);
 		radix_tree_iter_delete(&cache->rt, &iter, slot);
+		up_write(&cache->lock);
+
 		if (cache->destructor_fn)
 			cache->destructor_fn(val);
 	}

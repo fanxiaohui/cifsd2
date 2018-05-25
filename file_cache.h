@@ -26,6 +26,7 @@
 #include <linux/workqueue.h>
 #include <linux/list.h>
 #include <linux/spinlock.h>
+#include <linux/rcupdate.h>
 
 /***********************************************************************/
 /** TO BE REVISITED **/
@@ -181,7 +182,7 @@ struct cifsd_file_ {
 	struct hlist_node		create_id_hash;
 	struct hlist_node		app_id_hash;
 	atomic_t			__refcount;
-	struct work_struct		__free_work;
+	struct rcu_head			__free_work;
 };
 
 #define CIFSD_FILE_PARENT_VFS_INODE(f)	\

@@ -30,11 +30,11 @@
 static struct cifsd_cache file_cache;
 #endif
 
-static void cifsd_file_free(struct work_struct *work)
+static void cifsd_file_free(struct rcu_head *rcu_head)
 {
-	struct cifsd_file_ *filp = container_of(work,
-					       struct cifsd_file_,
-					       __free_work);
+	struct cifsd_file_ *filp = container_of(rcu_head,
+					        struct cifsd_file_,
+					        __free_work);
 	struct file *vfs_filp;
 
 	if (filp->symlink_filp)
@@ -49,7 +49,7 @@ static void __cache_destructor_fn(void *val)
 {
 	struct cifsd_file_ *filp = (struct cifsd_file_ *)val;
 
-	schedule_work(&filp->__free_work);
+	call_rcu(&filp->__free_work, cifsd_file_free);
 }
 
 static void __hash_destructor_fn(struct hlist_node *node)
@@ -292,8 +292,6 @@ struct cifsd_file_ *cifsd_file_open(struct file *file)
 		return NULL;
 
 	atomic_set(&filp->__refcount, 1);
-	INIT_WORK(&filp->__free_work, cifsd_file_free);
-
 	inode = cifsd_inode_open(filp);
 	if (!inode) {
 		WARN_ON(1);
