@@ -54,10 +54,6 @@ static void __cache_destructor_fn(void *val)
 
 static void __hash_destructor_fn(struct hlist_node *node)
 {
-	struct cifsd_file_ *filp = container_of(node,
-					       struct cifsd_file_,
-					       client_id_hash);
-	cifsd_file_put(filp);
 }
 
 static void *cifsd_file_get(struct cifsd_file_ *filp)
@@ -338,8 +334,8 @@ int cifsd_local_file_cache_init(struct cifsd_sess *sess)
 
 void cifsd_local_file_cache_destroy(struct cifsd_sess *sess)
 {
-	cifsd_cache_destroy(&sess->file_cache.cache);
 	cifsd_hash_destroy(&sess->file_cache.hash);
+	cifsd_cache_destroy(&sess->file_cache.cache);
 }
 
 #ifdef CONFIG_CIFS_SMB2_SERVER
