@@ -65,13 +65,6 @@ static void *__lookup_fn(void *val)
 	return cifsd_inode_get(ino);
 }
 
-static int cifsd_inode_cache_insert(struct cifsd_inode *ino)
-{
-	return cifsd_cache_insert(&inode_cache,
-				  CIFSD_INODE_LOOKUP_KEY(ino),
-				  ino);
-}
-
 struct cifsd_inode *cifsd_inode_cache_lookup(unsigned long key)
 {
 	return cifsd_cache_lookup(&inode_cache, key);
