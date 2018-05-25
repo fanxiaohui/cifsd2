@@ -23,7 +23,7 @@
 #include <linux/spinlock.h>
 #include <linux/list.h>
 #include <linux/atomic.h>
-#include <linux/workqueue.h>
+#include <linux/rcupdate.h>
 
 #include "cache.h"
 
@@ -41,7 +41,7 @@ struct cifsd_inode {
 	char			*i_stream_name;
 
 	atomic_t		__refcount;
-	struct work_struct	__free_work;
+	struct rcu_head		__free_work;
 };
 
 #define CIFSD_INODE_LOOKUP_KEY(i)	((unsigned long)(i)->i_inode)

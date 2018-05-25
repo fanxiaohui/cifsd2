@@ -23,9 +23,9 @@
 
 static struct cifsd_cache inode_cache;
 
-static void cifsd_inode_free(struct work_struct *work)
+static void cifsd_inode_free(struct rcu_head *rcu_head)
 {
-	struct cifsd_inode *ino = container_of(work,
+	struct cifsd_inode *ino = container_of(rcu_head,
 					       struct cifsd_inode,
 					       __free_work);
 
@@ -37,7 +37,7 @@ static void __destructor_fn(void *val)
 {
 	struct cifsd_inode *ino = (struct cifsd_inode *)val;
 
-	schedule_work(&ino->__free_work);
+	call_rcu(&ino->__free_work, cifsd_inode_free);
 }
 
 static void *cifsd_inode_get(struct cifsd_inode *ino)
@@ -117,7 +117,6 @@ struct cifsd_inode *cifsd_inode_open(struct cifsd_file_ *filp)
 	atomic_set(&ino->i_op_count, 0);
 	INIT_LIST_HEAD(&ino->i_fp_list);
 	INIT_LIST_HEAD(&ino->i_op_list);
-	INIT_WORK(&ino->__free_work, cifsd_inode_free);
 
 	if (cifsd_cache_insert(&inode_cache, key, ino)) {
 		kfree(ino);

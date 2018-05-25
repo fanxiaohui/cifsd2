@@ -23,7 +23,6 @@
 #include <linux/time.h>
 #include <linux/wait.h>
 #include <linux/fs.h>
-#include <linux/workqueue.h>
 #include <linux/list.h>
 #include <linux/spinlock.h>
 #include <linux/rcupdate.h>
