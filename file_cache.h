@@ -118,7 +118,6 @@ struct cifsd_pipe_ {
 	char			*rsp_buf;
 };
 
-#define CIFSD_NR_OPEN_DEFAULT BITS_PER_LONG
 /***********************************************************************/
 
 struct cifsd_inode;
