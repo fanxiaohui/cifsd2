@@ -67,13 +67,6 @@ static void *cifsd_file_get(struct cifsd_file_ *filp)
         return filp;
 }
 
-void cifsd_file_put(struct cifsd_file_ *filp)
-{
-	if (!atomic_dec_and_test(&filp->__refcount))
-		return;
-	__cache_destructor_fn(filp);
-}
-
 static void *__cache_lookup_fn(void *val)
 {
 	struct cifsd_file_ *filp = (struct cifsd_file_ *)val;
@@ -309,16 +302,23 @@ struct cifsd_file_ *cifsd_file_open(struct file *file)
 
 void cifsd_file_close(struct cifsd_file_ *filp)
 {
+	//close_id_del_oplock(filp);
+
+	cifsd_inode_close(filp);
+	cifsd_file_put(filp);
+}
+
+void cifsd_file_put(struct cifsd_file_ *filp)
+{
+	if (!atomic_dec_and_test(&filp->__refcount))
+		return;
+
 	cifsd_cache_remove(&filp->sess->file_cache.cache, filp->volatile_id);
 #ifdef CONFIG_CIFS_SMB2_SERVER
 	cifsd_cache_remove(&file_cache, filp->persistent_id);
 #endif
 	__remove_file_from_id_hash(filp->sess, filp);
-
-	//close_id_del_oplock(filp);
-
-	cifsd_inode_close(filp);
-	cifsd_file_put(filp);
+	__cache_destructor_fn(filp);
 }
 
 int cifsd_local_file_cache_init(struct cifsd_sess *sess)
