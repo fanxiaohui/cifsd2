@@ -309,7 +309,12 @@ struct cifsd_file_ *cifsd_file_open(struct file *file)
 
 void cifsd_file_close(struct cifsd_file_ *filp)
 {
+	cifsd_cache_remove(&filp->sess->file_cache.cache, filp->volatile_id);
+#ifdef CONFIG_CIFS_SMB2_SERVER
+	cifsd_cache_remove(&file_cache, filp->persistent_id);
+#endif
 	__remove_file_from_id_hash(filp->sess, filp);
+
 	//close_id_del_oplock(filp);
 
 	cifsd_inode_close(filp);
