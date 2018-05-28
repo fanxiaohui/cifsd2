@@ -28,7 +28,8 @@
 #include "cache.h"
 
 #define CIFSD_INODE_UNLINK_ON_CLOSE		(1 << 0)
-#define CIFSD_INODE_UNLINK_ON_CLOSE_STREAM	(1 << 1)
+#define CIFSD_INODE_INHERITED_UNLINK_ON_CLOSE	(1 << 1)
+#define CIFSD_INODE_UNLINK_ON_CLOSE_STREAM	(1 << 2)
 
 struct cifsd_inode_ {
 	struct inode		*i_inode;
@@ -54,7 +55,8 @@ struct cifsd_file_;
 struct cifsd_inode_ *cifsd_inode_open(struct cifsd_file_ *filp);
 void cifsd_inode_close(struct cifsd_file_ *filp);
 
-void cifsd_inode_set_delete_on_close(struct cifsd_file_ *filp);
+void cifsd_inode_set_unlinnk_on_close(struct cifsd_file_ *filp);
+bool cifsd_inode_unlink_on_close(struct cifsd_file_ *filp);
 
 int cifsd_inode_cache_init(void);
 void cifsd_inode_cache_destroy(void);
