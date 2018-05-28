@@ -23,119 +23,119 @@
 
 static struct cifsd_cache inode_cache;
 
-static void cifsd_inode_free(struct rcu_head *rcu_head)
+static void __cifsd_inode_free(struct rcu_head *rcu_head)
 {
-	struct cifsd_inode *ino = container_of(rcu_head,
-					       struct cifsd_inode,
+	struct cifsd_inode_ *ci = container_of(rcu_head,
+					       struct cifsd_inode_,
 					       __free_work);
 
-	kfree(ino->i_stream_name);
-	kfree(ino);
+	kfree(ci->i_stream_name);
+	kfree(ci);
 }
 
 static void __destructor_fn(void *val)
 {
-	struct cifsd_inode *ino = (struct cifsd_inode *)val;
+	struct cifsd_inode_ *ci = (struct cifsd_inode_ *)val;
 
-	call_rcu(&ino->__free_work, cifsd_inode_free);
+	call_rcu(&ci->__free_work, __cifsd_inode_free);
 }
 
-static void *cifsd_inode_get(struct cifsd_inode *ino)
+static void *__cifsd_inode_get(struct cifsd_inode_ *ci)
 {
-	if (!atomic_inc_not_zero(&ino->__refcount))
+	if (!atomic_inc_not_zero(&ci->__refcount))
 		return NULL;
-        return ino;
+        return ci;
 }
 
-void cifsd_inode_put(struct cifsd_inode *ino)
+void cifsd_inode_put(struct cifsd_inode_ *ci)
 {
-	if (!atomic_dec_and_test(&ino->__refcount))
+	if (!atomic_dec_and_test(&ci->__refcount))
 		return;
 
-	cifsd_cache_remove(&inode_cache, CIFSD_INODE_LOOKUP_KEY(ino));
-	__destructor_fn(ino);
+	cifsd_cache_remove(&inode_cache, CIFSD_INODE_LOOKUP_KEY(ci));
+	__destructor_fn(ci);
 }
 
 static void *__lookup_fn(void *val)
 {
-	struct cifsd_inode *ino = (struct cifsd_inode *)val;
+	struct cifsd_inode_ *ci = (struct cifsd_inode_ *)val;
 
-	if (!ino->i_inode)
+	if (!ci->i_inode)
 		return NULL;
-	return cifsd_inode_get(ino);
+	return __cifsd_inode_get(ci);
 }
 
-struct cifsd_inode *cifsd_inode_cache_lookup(unsigned long key)
+struct cifsd_inode_ *cifsd_inode_cache_lookup(unsigned long key)
 {
 	return cifsd_cache_lookup(&inode_cache, key);
 }
 
-static int __cifsd_inode_open(struct cifsd_inode *ino,
+static int __cifsd_inode_open(struct cifsd_inode_ *ci,
 			      struct cifsd_file_ *filp)
 {
-	if (!cifsd_inode_get(ino))
+	if (!__cifsd_inode_get(ci))
 		return -EINVAL;
 
-	spin_lock(&ino->i_lock);
-	list_add(&filp->f_ino_list, &ino->i_fp_list);
-	if (!ino->i_inode)
-		ino->i_inode = CIFSD_FILE_VFS_INODE(filp);
-	spin_unlock(&ino->i_lock);
+	spin_lock(&ci->i_lock);
+	list_add(&filp->f_ci_list, &ci->i_fp_list);
+	if (!ci->i_inode)
+		ci->i_inode = CIFSD_FILE_VFS_INODE(filp);
+	spin_unlock(&ci->i_lock);
 
-	if (!ino->i_stream_name && filp->is_stream) {
+	if (!ci->i_stream_name && filp->is_stream) {
 		char *str = kstrdup(filp->stream.name, GFP_KERNEL);
 
 		if (!str) {
-			cifsd_inode_put(ino);
+			cifsd_inode_put(ci);
 			return -EINVAL;
 		}
-		spin_lock(&ino->i_lock);
-		ino->i_stream_name = str;
-		spin_unlock(&ino->i_lock);
+		spin_lock(&ci->i_lock);
+		ci->i_stream_name = str;
+		spin_unlock(&ci->i_lock);
 	}
 	return 0;
 }
 
-struct cifsd_inode *cifsd_inode_open(struct cifsd_file_ *filp)
+struct cifsd_inode_ *cifsd_inode_open(struct cifsd_file_ *filp)
 {
-	struct cifsd_inode *ino;
+	struct cifsd_inode_ *ci;
 	unsigned long key = (unsigned long)CIFSD_FILE_VFS_INODE(filp);
 
-	ino = cifsd_cache_lookup(&inode_cache, key);
-	if (ino) {
-		if (__cifsd_inode_open(ino, filp))
+	ci = cifsd_cache_lookup(&inode_cache, key);
+	if (ci) {
+		if (__cifsd_inode_open(ci, filp))
 			return NULL;
-		return ino;
+		return ci;
 	}
 
-	ino = kzalloc(sizeof(struct cifsd_inode), GFP_KERNEL);
-	if (!ino)
+	ci = kzalloc(sizeof(struct cifsd_inode_), GFP_KERNEL);
+	if (!ci)
 		return NULL;
 
-	spin_lock_init(&ino->i_lock);
-	atomic_set(&ino->__refcount, 1);
-	atomic_set(&ino->i_op_count, 0);
-	INIT_LIST_HEAD(&ino->i_fp_list);
-	INIT_LIST_HEAD(&ino->i_op_list);
+	spin_lock_init(&ci->i_lock);
+	atomic_set(&ci->__refcount, 1);
+	atomic_set(&ci->i_op_count, 0);
+	INIT_LIST_HEAD(&ci->i_fp_list);
+	INIT_LIST_HEAD(&ci->i_op_list);
 
-	if (cifsd_cache_insert(&inode_cache, key, ino)) {
-		kfree(ino);
-		ino = cifsd_cache_lookup(&inode_cache, key);
+	if (cifsd_cache_insert(&inode_cache, key, ci)) {
+		kfree(ci);
+		ci = cifsd_cache_lookup(&inode_cache, key);
 	}
 
-	if (!ino) {
+	if (!ci) {
 		WARN_ON(1);
 		return NULL;
 	}
 
-	__cifsd_inode_open(ino, filp);
-	return ino;
+	__cifsd_inode_open(ci, filp);
+	return ci;
 }
 
 void cifsd_inode_close(struct cifsd_file_ *filp)
 {
 	spin_lock(&CIFSD_FILE_INODE(filp)->i_lock);
-	list_del(&filp->f_ino_list);
+	list_del(&filp->f_ci_list);
 	spin_unlock(&CIFSD_FILE_INODE(filp)->i_lock);
 
 	cifsd_inode_put(CIFSD_FILE_INODE(filp));
@@ -143,17 +143,17 @@ void cifsd_inode_close(struct cifsd_file_ *filp)
 
 void cifsd_inode_set_delete_on_close(struct cifsd_file_ *filp)
 {
-	struct cifsd_inode *ino = CIFSD_FILE_INODE(filp);
+	struct cifsd_inode_ *ci = CIFSD_FILE_INODE(filp);
 
-	if (atomic_read(&ino->__refcount) == 1)
-		ino->i_flags |= CIFSD_INODE_UNLINK_ON_CLOSE;
+	if (atomic_read(&ci->__refcount) == 1)
+		ci->i_flags |= CIFSD_INODE_UNLINK_ON_CLOSE;
 }
 
 void cifsd_inode_clear_delete_on_close(struct cifsd_file_ *filp)
 {
-	struct cifsd_inode *ino = CIFSD_FILE_INODE(filp);
+	struct cifsd_inode_ *ci = CIFSD_FILE_INODE(filp);
 
-	ino->i_flags &= ~CIFSD_INODE_UNLINK_ON_CLOSE;
+	ci->i_flags &= ~CIFSD_INODE_UNLINK_ON_CLOSE;
 }
 
 int cifsd_inode_cache_init(void)

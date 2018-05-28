@@ -30,7 +30,7 @@
 #define CIFSD_INODE_UNLINK_ON_CLOSE		(1 << 0)
 #define CIFSD_INODE_UNLINK_ON_CLOSE_STREAM	(1 << 1)
 
-struct cifsd_inode {
+struct cifsd_inode_ {
 	struct inode		*i_inode;
 	spinlock_t		i_lock;
 
@@ -46,12 +46,12 @@ struct cifsd_inode {
 
 #define CIFSD_INODE_LOOKUP_KEY(i)	((unsigned long)(i)->i_inode)
 
-struct cifsd_inode *cifsd_inode_cache_lookup(unsigned long key);
+struct cifsd_inode_ *cifsd_inode_cache_lookup(unsigned long key);
 
-void cifsd_inode_put(struct cifsd_inode *ino);
+void cifsd_inode_put(struct cifsd_inode_ *ci);
 
 struct cifsd_file_;
-struct cifsd_inode *cifsd_inode_open(struct cifsd_file_ *filp);
+struct cifsd_inode_ *cifsd_inode_open(struct cifsd_file_ *filp);
 void cifsd_inode_close(struct cifsd_file_ *filp);
 
 void cifsd_inode_set_delete_on_close(struct cifsd_file_ *filp);

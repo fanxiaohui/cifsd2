@@ -282,22 +282,22 @@ struct cifsd_file_ *cifsd_file_cache_lookup(struct cifsd_sess *sess,
 struct cifsd_file_ *cifsd_file_open(struct file *file)
 {
 	struct cifsd_file_ *filp;
-	struct cifsd_inode *inode;
+	struct cifsd_inode_ *ci;
 
 	filp = cifsd_alloc_file_struct();
 	if (!filp)
 		return NULL;
 
 	atomic_set(&filp->__refcount, 1);
-	inode = cifsd_inode_open(filp);
-	if (!inode) {
+	ci = cifsd_inode_open(filp);
+	if (!ci) {
 		WARN_ON(1);
 		cifsd_free_file_struct(filp);
 		return NULL;
 	}
 
 	filp->f_filp = file;
-	filp->f_inode = inode;
+	filp->f_inode = ci;
 	INIT_HLIST_NODE(&filp->client_id_hash);
 	INIT_HLIST_NODE(&filp->create_id_hash);
 	INIT_HLIST_NODE(&filp->app_id_hash);

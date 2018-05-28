@@ -119,11 +119,11 @@ struct cifsd_pipe_ {
 
 /***********************************************************************/
 
-struct cifsd_inode;
+struct cifsd_inode_;
 
 struct cifsd_file_ {
 	struct file			*f_filp;
-	struct cifsd_inode		*f_inode;
+	struct cifsd_inode_		*f_inode;
 
 	struct cifsd_sess		*sess;
 	struct cifsd_tcon		*tcon;
@@ -158,7 +158,7 @@ struct cifsd_file_ {
 	__u64				create_time;
 
 	struct cifsd_stream		stream;
-	struct list_head		f_ino_list;
+	struct list_head		f_ci_list;
 	struct hlist_node		notify_node;
 	struct list_head		queue;
 	struct list_head		lock_list;
