@@ -149,13 +149,6 @@ void cifsd_inode_set_delete_on_close(struct cifsd_file_ *filp)
 		ci->i_flags |= CIFSD_INODE_UNLINK_ON_CLOSE;
 }
 
-void cifsd_inode_clear_delete_on_close(struct cifsd_file_ *filp)
-{
-	struct cifsd_inode_ *ci = CIFSD_FILE_INODE(filp);
-
-	ci->i_flags &= ~CIFSD_INODE_UNLINK_ON_CLOSE;
-}
-
 int cifsd_inode_cache_init(void)
 {
 	cifsd_cache_init(&inode_cache,
