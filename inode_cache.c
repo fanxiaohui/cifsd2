@@ -154,7 +154,7 @@ bool cifsd_inode_unlink_on_close(struct cifsd_file_ *filp)
 	struct cifsd_inode_ *ci = CIFSD_FILE_INODE(filp);
 
 	return ci->i_flags & CIFSD_INODE_UNLINK_ON_CLOSE ||
-		ci->i_flags & CIFSD_INODE_INHERITED_UNLINK_ON_CLOSE;
+		ci->i_flags & CIFSD_FILE_UNLINK_ON_CLOSE;
 }
 
 int cifsd_inode_cache_init(void)

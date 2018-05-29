@@ -27,8 +27,8 @@
 
 #include "cache.h"
 
-#define CIFSD_INODE_UNLINK_ON_CLOSE		(1 << 0)
-#define CIFSD_INODE_INHERITED_UNLINK_ON_CLOSE	(1 << 1)
+#define CIFSD_INODE_UNLINK_ON_CLOSE	(1 << 0)
+#define CIFSD_FILE_UNLINK_ON_CLOSE	(1 << 1)
 #define CIFSD_INODE_UNLINK_ON_CLOSE_STREAM	(1 << 2)
 
 struct cifsd_inode_ {
