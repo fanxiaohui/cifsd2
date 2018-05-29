@@ -101,6 +101,7 @@ struct cifsd_inode_ *cifsd_inode_open(struct cifsd_file_ *filp)
 	struct cifsd_inode_ *ci;
 	unsigned long key = (unsigned long)CIFSD_FILE_VFS_INODE(filp);
 
+retry:
 	ci = cifsd_cache_lookup(&inode_cache, key);
 	if (ci) {
 		if (__cifsd_inode_open(ci, filp))
@@ -123,10 +124,8 @@ struct cifsd_inode_ *cifsd_inode_open(struct cifsd_file_ *filp)
 		ci = cifsd_cache_lookup(&inode_cache, key);
 	}
 
-	if (!ci) {
-		WARN_ON(1);
-		return NULL;
-	}
+	if (!ci)
+		goto retry;
 
 	__cifsd_inode_open(ci, filp);
 	return ci;
