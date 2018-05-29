@@ -72,9 +72,9 @@ int cifsd_cache_insert_index(struct cifsd_cache *cache,
 	int ret;
 
 	down_write(&cache->lock);
-	start_pos = atomic_long_read(&cache->next_id);
+	start_pos = cache->next_id;
 	do {
-		key = atomic_long_inc_return(&cache->next_id);
+		key = cache->next_id++;
 		if (key == start_pos) {
 			ret = -EINVAL;
 			break;
@@ -121,7 +121,7 @@ int cifsd_cache_init(struct cifsd_cache *cache,
 	INIT_RADIX_TREE(&cache->rt, GFP_KERNEL);
 
 	init_rwsem(&cache->lock);
-	atomic_long_set(&cache->next_id, 0);
+	cache->next_id = 1;
 	cache->lookup_fn = lookup_fn;
 	cache->destructor_fn = destructor_fn;
 	return 0;

@@ -28,7 +28,7 @@
 struct cifsd_cache {
 	struct rw_semaphore	lock;
 	struct radix_tree_root	rt;
-	atomic_long_t		next_id;
+	unsigned long		next_id;
 
 	void 			*(*lookup_fn)(void *val);
 	void 			(*destructor_fn)(void *val);
