@@ -32,7 +32,7 @@
 #define IPC_MSG_HASH_BITS		3
 static DEFINE_HASHTABLE(ipc_msg_table, IPC_MSG_HASH_BITS);
 static DECLARE_RWSEM(ipc_msg_table_lock);
-static atomic64_t ipc_msg_handle;
+static unsigned long long ipc_msg_handle;
 
 static struct sock *nlsk;
 static pid_t cifsd_tools_pid;
@@ -50,7 +50,7 @@ static pid_t cifsd_tools_pid;
 struct ipc_msg_table_entry {
 	unsigned long long	handle;
 	struct hlist_node	hlist;
-	wait_queue_head_t	waiter;
+	wait_queue_head_t	wait;
 
 	struct cifsd_ipc_msg	*msg;
 };
@@ -70,9 +70,67 @@ static void handle_response(struct nlmsghdr *nlh)
 			break;
 
 		memcpy(entry->msg, nlmsg_data(nlh), nlmsg_len(nlh));
-		wake_up_interruptible(&entry->waiter);
+		wake_up_interruptible(&entry->wait);
 	}
 	up_read(&ipc_msg_table_lock);
+}
+
+static int ipc_msg_send(struct cifsd_ipc_msg *msg)
+{
+	struct nlmsghdr *nlh;
+	struct sk_buff *skb;
+	int ret = -EINVAL;
+
+	skb = nlmsg_new(msg->sz, GFP_KERNEL);
+	if (!skb)
+		return -ENOMEM;
+
+	nlh = nlmsg_put(skb, cifsd_tools_pid, 0, msg->type, msg->sz, 0);
+	if (!nlh) {
+		nlmsg_cancel(skb, nlh);
+		goto out;
+	}
+
+	ret = nla_put(skb, NLA_UNSPEC, msg->sz, CIFSD_IPC_MSG_PAYLOAD(msg));
+	if (ret) {
+		nlmsg_cancel(skb, nlh);
+		goto out;
+	}
+
+	nlmsg_end(skb, nlh);
+	ret = nlmsg_unicast(nlsk, skb, cifsd_tools_pid);
+out:
+	nlmsg_free(skb);
+	return ret;
+}
+
+static struct cifsd_ipc_msg *ipc_msg_send_request(struct cifsd_ipc_msg *msg)
+{
+	struct ipc_msg_table_entry entry;
+	int ret;
+
+	entry.msg = NULL;
+	init_waitqueue_head(&entry.wait);
+
+	down_write(&ipc_msg_table_lock);
+	entry.handle = CIFSD_IPC_MSG_HANDLE(CIFSD_IPC_MSG_PAYLOAD(msg));
+	WARN_ON(!entry.handle);
+	hash_add(ipc_msg_table, &entry.hlist, entry.handle);
+	up_write(&ipc_msg_table_lock);
+
+	ret = ipc_msg_send(msg);
+	if (ret)
+		goto out;
+
+	ret = wait_event_interruptible_timeout(entry.wait,
+					       entry.msg != NULL,
+					       2 * HZ);
+out:
+	down_write(&ipc_msg_table_lock);
+	hash_del(&entry.hlist);
+	up_write(&ipc_msg_table_lock);
+
+	return entry.msg;
 }
 
 static void handle_startup(struct nlmsghdr *nlh)
@@ -144,6 +202,19 @@ static void cifsd_ipc_receiving_loop(struct sk_buff *skb)
 	}
 out:
 	consume_skb(skb);
+}
+
+unsigned long long cifsd_ipc_gen_handle(void)
+{
+	unsigned long long ret;
+
+	down_write(&ipc_msg_table_lock);
+	do {
+		ret = ipc_msg_handle++;
+	} while (ret == 0);
+	up_write(&ipc_msg_table_lock);
+
+	return ret;
 }
 
 struct cifsd_ipc_msg *cifds_ipc_msg_alloc(size_t sz)
