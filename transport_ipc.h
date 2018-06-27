@@ -32,10 +32,12 @@ struct cifsd_ipc_msg {
 #define CIFSD_IPC_MSG_PAYLOAD(m)	\
 	((void *)(m) + offsetof(struct cifsd_ipc_msg, ____payload))
 
-#define CIFSD_IPC_MSG_HANDLE(m)		\
-	(*(unsigned long long *)m)
-
 void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg);
+
+struct cifsd_ipc_msg *cifsd_ipc_login_request(void);
+struct cifsd_ipc_msg *cifsd_ipc_tree_connect_request(void);
+int cifsd_ipc_tree_disconnect_request(unsigned long long connect_id);
+int cifsd_ipc_logout_request(unsigned long long account_id);
 
 void cifsd_ipc_release(void);
 int cifsd_ipc_init(void);
