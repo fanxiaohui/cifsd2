@@ -89,10 +89,8 @@ static int ipc_msg_send(struct cifsd_ipc_msg *msg)
 		return -ENOMEM;
 
 	nlh = nlmsg_put(skb, cifsd_tools_pid, 0, msg->type, msg->sz, 0);
-	if (!nlh) {
-		nlmsg_cancel(skb, nlh);
+	if (!nlh)
 		goto out;
-	}
 
 	ret = nla_put(skb, NLA_UNSPEC, msg->sz, CIFSD_IPC_MSG_PAYLOAD(msg));
 	if (ret) {
