@@ -69,6 +69,7 @@ struct cifsd_tree_disconnect_request {
 
 struct cifsd_logout_request {
 	__u64	handle;
+	__s8	account[256];
 } __packed;
 
 enum cifsd_event {
