@@ -6,6 +6,7 @@ cifsd-y := 	export.o unicode.o encrypt.o auth.o \
 		management/user.o\
 		buffer_pool.o \
 		transport_tcp.o \
+		transport_ipc.o \
 		server.o
 
 cifsd-$(CONFIG_CIFS_SMB2_SERVER) += smb2pdu.o smb2ops.o asn1.o

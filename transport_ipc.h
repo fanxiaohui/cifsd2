@@ -33,14 +33,12 @@ struct cifsd_ipc_msg {
 	((void *)(m) + offsetof(struct cifsd_ipc_msg, ____payload))
 
 #define CIFSD_IPC_MSG_HANDLE(m)		\
-	(*(unsigned long long)m)
+	(*(unsigned long long *)m)
 
 struct cifsd_ipc_msg *cifds_ipc_msg_alloc(size_t sz);
 void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg);
 
-int cifsd_ipc_receiving_loop(void);
-
-void cifsd_ipc_free(void);
+void cifsd_ipc_release(void);
 int cifsd_ipc_init(void);
 
 #endif /* __CIFSD_TRANSPORT_IPC_H__ */

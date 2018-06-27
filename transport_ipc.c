@@ -20,8 +20,13 @@
 #include <linux/slab.h>
 #include <linux/rwsem.h>
 #include <linux/mutex.h>
+#include <linux/wait.h>
+#include <linux/hashtable.h>
+#include <net/netlink.h>
+#include <net/net_namespace.h>
 
 #include "transport_ipc.h"
+#include "buffer_pool.h"
 #include "cifsd_server.h"  /* FIXME */
 
 #define IPC_MSG_HASH_BITS		3
@@ -35,7 +40,7 @@ static pid_t cifsd_tools_pid;
 #define VALID_IPC_MSG(m,t) 						\
 	({								\
 		int ret = 1;						\
-		if (nlmsg_len(m) != sizeof(t))) {			\
+		if (nlmsg_len(m) != sizeof(t)) {			\
 			pr_err("Bad message: %d\n", m->nlmsg_type);	\
 			ret = 0;					\
 		}							\
@@ -44,7 +49,7 @@ static pid_t cifsd_tools_pid;
 
 struct ipc_msg_table_entry {
 	unsigned long long	handle;
-	struct hlist_node	hlist
+	struct hlist_node	hlist;
 	wait_queue_head_t	waiter;
 
 	struct cifsd_ipc_msg	*msg;
@@ -53,8 +58,9 @@ struct ipc_msg_table_entry {
 static void handle_response(struct nlmsghdr *nlh)
 {
 	unsigned long long handle = CIFSD_IPC_MSG_HANDLE(nlmsg_data(nlh));
+	struct ipc_msg_table_entry *entry;
 
-	read_lock(&ipc_msg_table_lock);
+	down_read(&ipc_msg_table_lock);
 	hash_for_each_possible(ipc_msg_table, entry, hlist, handle) {
 		if (handle != entry->handle)
 			continue;
@@ -66,7 +72,7 @@ static void handle_response(struct nlmsghdr *nlh)
 		memcpy(entry->msg, nlmsg_data(nlh), nlmsg_len(nlh));
 		wake_up_interruptible(&entry->waiter);
 	}
-	read_unlock(&ipc_msg_table_lock);
+	up_read(&ipc_msg_table_lock);
 }
 
 static void handle_startup(struct nlmsghdr *nlh)
@@ -94,7 +100,7 @@ static void handle_shutdown(struct nlmsghdr *nlh)
 	/* shutdown */
 }
 
-static void cifsd_ipc_handle_message(struct nlmsghdr *nlh)
+static void cifsd_ipc_consume_message(struct nlmsghdr *nlh)
 {
 	switch (nlh->nlmsg_type) {
 	case CIFSD_EVENT_TREE_CONNECT_RESPONSE:
@@ -132,10 +138,11 @@ static void cifsd_ipc_receiving_loop(struct sk_buff *skb)
 		nlh = nlmsg_hdr(skb);
 		payload_sz = nlmsg_len(nlh);
 		if (skb->len < payload_sz)
-			break;
+			goto out;
 
 		cifsd_ipc_consume_message(nlh);
 	}
+out:
 	consume_skb(skb);
 }
 
@@ -157,7 +164,7 @@ void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg)
 	cifsd_free(msg);
 }
 
-void cifsd_ipc_free(void)
+void cifsd_ipc_release(void)
 {
 	netlink_kernel_release(nlsk);
 }
@@ -170,7 +177,7 @@ int cifsd_ipc_init(void)
 
 	nlsk = netlink_kernel_create(&init_net, CIFSD_TOOLS_NETLINK, &cfg);
 	if (!nlsk) {
-		cifsd_err("failed to create cifsd netlink socket\n");
+		pr_err("failed to create cifsd netlink socket.\n");
 		return -ENOMEM;
 	}
 	return 0;
