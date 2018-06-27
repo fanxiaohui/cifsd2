@@ -141,11 +141,20 @@ static void cifsd_ipc_receiving_loop(struct sk_buff *skb)
 
 struct cifsd_ipc_msg *cifds_ipc_msg_alloc(size_t sz)
 {
-	return NULL;
+	struct cifsd_ipc_msg *msg;
+	size_t msg_sz = sz + sizeof(struct cifsd_ipc_msg) - sizeof(void *);
+
+	msg = cifsd_alloc(msg_sz);
+	if (msg) {
+		msg->destination = -1;
+		msg->sz = sz;
+	}
+	return msg;
 }
 
 void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg)
 {
+	cifsd_free(msg);
 }
 
 void cifsd_ipc_free(void)
