@@ -50,6 +50,9 @@ static pid_t cifsd_tools_pid;
 		ret;							\
 	})
 
+#define CIFSD_IPC_MSG_HANDLE(m)						\
+	(*(unsigned long long *)m)
+
 struct ipc_msg_table_entry {
 	unsigned long long	handle;
 	struct hlist_node	hlist;
@@ -57,6 +60,24 @@ struct ipc_msg_table_entry {
 
 	struct cifsd_ipc_msg	*msg;
 };
+
+static struct cifsd_ipc_msg *ipc_msg_alloc(size_t sz)
+{
+	struct cifsd_ipc_msg *msg;
+	size_t msg_sz = sz + sizeof(struct cifsd_ipc_msg) - sizeof(void *);
+
+	msg = cifsd_alloc(msg_sz);
+	if (msg) {
+		msg->destination = -1;
+		msg->sz = sz;
+	}
+	return msg;
+}
+
+void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg)
+{
+	cifsd_free(msg);
+}
 
 static void handle_response(struct nlmsghdr *nlh)
 {
@@ -68,7 +89,7 @@ static void handle_response(struct nlmsghdr *nlh)
 		if (handle != entry->handle)
 			continue;
 
-		entry->msg = cifds_ipc_msg_alloc(nlmsg_len(nlh));
+		entry->msg = ipc_msg_alloc(nlmsg_len(nlh));
 		if (!entry->msg)
 			break;
 
@@ -205,7 +226,7 @@ out:
 	consume_skb(skb);
 }
 
-unsigned long long cifsd_ipc_gen_handle(void)
+static unsigned long long next_ipc_msg_handle(void)
 {
 	unsigned long long ret;
 
@@ -218,22 +239,74 @@ unsigned long long cifsd_ipc_gen_handle(void)
 	return ret;
 }
 
-struct cifsd_ipc_msg *cifds_ipc_msg_alloc(size_t sz)
+struct cifsd_ipc_msg *cifsd_ipc_login_request(void)
 {
-	struct cifsd_ipc_msg *msg;
-	size_t msg_sz = sz + sizeof(struct cifsd_ipc_msg) - sizeof(void *);
+	struct cifsd_ipc_msg *req_msg, *resp_msg;
+	struct cifsd_login_request *req;
 
-	msg = cifsd_alloc(msg_sz);
-	if (msg) {
-		msg->destination = -1;
-		msg->sz = sz;
-	}
-	return msg;
+	req_msg = ipc_msg_alloc(sizeof(struct cifsd_login_request));
+	if (!req_msg)
+		return NULL;
+
+	req = CIFSD_IPC_MSG_PAYLOAD(req_msg);
+	req->handle = next_ipc_msg_handle();
+
+	resp_msg = ipc_msg_send_request(req_msg);
+	cifsd_ipc_msg_free(req_msg);
+	return resp_msg;
 }
 
-void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg)
+struct cifsd_ipc_msg *cifsd_ipc_tree_connect_request(void)
 {
-	cifsd_free(msg);
+	struct cifsd_ipc_msg *req_msg, *resp_msg;
+	struct cifsd_tree_connect_request *req;
+
+	req_msg = ipc_msg_alloc(sizeof(struct cifsd_tree_connect_request));
+	if (!req_msg)
+		return NULL;
+
+	req = CIFSD_IPC_MSG_PAYLOAD(req_msg);
+	req->handle = next_ipc_msg_handle();
+
+	resp_msg = ipc_msg_send_request(req_msg);
+	cifsd_ipc_msg_free(req_msg);
+	return resp_msg;
+}
+
+int cifsd_ipc_tree_disconnect_request(unsigned long long connect_id)
+{
+	struct cifsd_ipc_msg *msg;
+	struct cifsd_tree_disconnect_request *req;
+	int ret;
+
+	msg = ipc_msg_alloc(sizeof(struct cifsd_tree_disconnect_request));
+	if (!msg)
+		return -ENOMEM;
+
+	req = CIFSD_IPC_MSG_PAYLOAD(msg);
+	req->connect_id = connect_id;
+
+	ret = ipc_msg_send(msg);
+	cifsd_ipc_msg_free(msg);
+	return ret;
+}
+
+int cifsd_ipc_logout_request(unsigned long long account_id)
+{
+	struct cifsd_ipc_msg *msg;
+	struct cifsd_logout_request *req;
+	int ret;
+
+	msg = ipc_msg_alloc(sizeof(struct cifsd_logout_request));
+	if (!msg)
+		return -ENOMEM;
+
+	req = CIFSD_IPC_MSG_PAYLOAD(msg);
+	req->account_id = account_id;
+
+	ret = ipc_msg_send(msg);
+	cifsd_ipc_msg_free(msg);
+	return ret;
 }
 
 void cifsd_ipc_release(void)

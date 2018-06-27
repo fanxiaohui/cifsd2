@@ -35,7 +35,6 @@ struct cifsd_ipc_msg {
 #define CIFSD_IPC_MSG_HANDLE(m)		\
 	(*(unsigned long long *)m)
 
-struct cifsd_ipc_msg *cifds_ipc_msg_alloc(size_t sz);
 void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg);
 
 void cifsd_ipc_release(void);
