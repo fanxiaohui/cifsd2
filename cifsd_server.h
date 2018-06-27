@@ -43,7 +43,6 @@ struct cifsd_login_request {
 
 struct cifsd_login_response {
 	__u64	handle;
-	__u64	account_id;
 	__u16	status;
 	__u16	hash_sz;
 	__s8	hash[256];

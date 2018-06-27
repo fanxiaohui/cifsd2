@@ -126,7 +126,8 @@ out:
 	return ret;
 }
 
-static struct cifsd_ipc_msg *ipc_msg_send_request(struct cifsd_ipc_msg *msg)
+static struct cifsd_ipc_msg *ipc_msg_send_request(struct cifsd_ipc_msg *msg,
+						  unsigned long long handle)
 {
 	struct ipc_msg_table_entry entry;
 	int ret;
@@ -135,8 +136,7 @@ static struct cifsd_ipc_msg *ipc_msg_send_request(struct cifsd_ipc_msg *msg)
 	init_waitqueue_head(&entry.wait);
 
 	down_write(&ipc_msg_table_lock);
-	entry.handle = CIFSD_IPC_MSG_HANDLE(CIFSD_IPC_MSG_PAYLOAD(msg));
-	WARN_ON(!entry.handle);
+	entry.handle = handle;
 	hash_add(ipc_msg_table, &entry.hlist, entry.handle);
 	up_write(&ipc_msg_table_lock);
 
@@ -251,7 +251,7 @@ struct cifsd_ipc_msg *cifsd_ipc_login_request(void)
 	req = CIFSD_IPC_MSG_PAYLOAD(req_msg);
 	req->handle = next_ipc_msg_handle();
 
-	resp_msg = ipc_msg_send_request(req_msg);
+	resp_msg = ipc_msg_send_request(req_msg, req->handle);
 	cifsd_ipc_msg_free(req_msg);
 	return resp_msg;
 }
@@ -268,7 +268,7 @@ struct cifsd_ipc_msg *cifsd_ipc_tree_connect_request(void)
 	req = CIFSD_IPC_MSG_PAYLOAD(req_msg);
 	req->handle = next_ipc_msg_handle();
 
-	resp_msg = ipc_msg_send_request(req_msg);
+	resp_msg = ipc_msg_send_request(req_msg, req->handle);
 	cifsd_ipc_msg_free(req_msg);
 	return resp_msg;
 }
