@@ -52,7 +52,7 @@ struct cifsd_login_response {
 struct cifsd_tree_connect_request {
 	__u64	handle;
 	__u32	flags;
-	__u64	account_id;
+	__s8	account[256];
 	__s8	share[256];
 	__s8	host[256];
 } __packed;
@@ -69,7 +69,7 @@ struct cifsd_tree_disconnect_request {
 } __packed;
 
 struct cifsd_logout_request {
-	__u64	account_id;
+	__s8	account[256];
 } __packed;
 
 enum cifsd_event {
