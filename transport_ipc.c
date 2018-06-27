@@ -32,14 +32,14 @@ static atomic64_t ipc_msg_handle;
 static struct sock *nlsk;
 static pid_t cifsd_tools_pid;
 
-#define VALID_IPC_MSG(m,t) 					\
-	({							\
-		int ret = 1;					\
-		if (nlmsg_len(m) != sizeof(t))) {		\
-			pr_err("Bad message: %s\n", __func__);	\
-			ret = 0;				\
-		}						\
-		ret;						\
+#define VALID_IPC_MSG(m,t) 						\
+	({								\
+		int ret = 1;						\
+		if (nlmsg_len(m) != sizeof(t))) {			\
+			pr_err("Bad message: %d\n", m->nlmsg_type);	\
+			ret = 0;					\
+		}							\
+		ret;							\
 	})
 
 struct ipc_msg_table_entry {
