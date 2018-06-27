@@ -29,8 +29,11 @@
 #include "buffer_pool.h"
 #include "cifsd_server.h"  /* FIXME */
 
-#define IPC_MSG_HASH_BITS		3
+#define IPC_WAIT_TIMEOUT	(2 * HZ)
+
+#define IPC_MSG_HASH_BITS	3
 static DEFINE_HASHTABLE(ipc_msg_table, IPC_MSG_HASH_BITS);
+
 static DECLARE_RWSEM(ipc_msg_table_lock);
 static unsigned long long ipc_msg_handle;
 
@@ -124,7 +127,7 @@ static struct cifsd_ipc_msg *ipc_msg_send_request(struct cifsd_ipc_msg *msg)
 
 	ret = wait_event_interruptible_timeout(entry.wait,
 					       entry.msg != NULL,
-					       2 * HZ);
+					       IPC_WAIT_TIMEOUT);
 out:
 	down_write(&ipc_msg_table_lock);
 	hash_del(&entry.hlist);
