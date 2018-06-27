@@ -291,7 +291,7 @@ int cifsd_ipc_tree_disconnect_request(unsigned long long connect_id)
 	return ret;
 }
 
-int cifsd_ipc_logout_request(unsigned long long account_id)
+int cifsd_ipc_logout_request(const char *account)
 {
 	struct cifsd_ipc_msg *msg;
 	struct cifsd_logout_request *req;
@@ -302,7 +302,7 @@ int cifsd_ipc_logout_request(unsigned long long account_id)
 		return -ENOMEM;
 
 	req = CIFSD_IPC_MSG_PAYLOAD(msg);
-	req->account_id = account_id;
+	strcpy(req->account, account);
 
 	ret = ipc_msg_send(msg);
 	cifsd_ipc_msg_free(msg);
