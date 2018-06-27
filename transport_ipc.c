@@ -32,27 +32,99 @@ static atomic64_t ipc_msg_handle;
 static struct sock *nlsk;
 static pid_t cifsd_tools_pid;
 
-struct cifsd_ipc_msg *cifds_ipc_msg_alloc(size_t sz)
+#define VALID_IPC_MSG(m,t) 					\
+	({							\
+		int ret = 1;					\
+		if (nlmsg_len(m) != sizeof(t))) {		\
+			pr_err("Bad message: %s\n", __func__);	\
+			ret = 0;				\
+		}						\
+		ret;						\
+	})
+
+struct ipc_msg_table_entry {
+	unsigned long long	handle;
+	struct hlist_node	hlist
+	wait_queue_head_t	waiter;
+
+	struct cifsd_ipc_msg	*msg;
+};
+
+static void handle_response(struct nlmsghdr *nlh)
 {
-	return NULL;
+	unsigned long long handle = CIFSD_IPC_MSG_HANDLE(nlmsg_data(nlh));
+
+	read_lock(&ipc_msg_table_lock);
+	hash_for_each_possible(ipc_msg_table, entry, hlist, handle) {
+		if (handle != entry->handle)
+			continue;
+
+		entry->msg = cifds_ipc_msg_alloc(nlmsg_len(nlh));
+		if (!entry->msg)
+			break;
+
+		memcpy(entry->msg, nlmsg_data(nlh), nlmsg_len(nlh));
+		wake_up_interruptible(&entry->waiter);
+	}
+	read_unlock(&ipc_msg_table_lock);
 }
 
-void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg)
+static void handle_startup(struct nlmsghdr *nlh)
 {
+	struct cifsd_startup_shutdown *req = nlmsg_data(nlh);
+
+	cifsd_tools_pid = req->pid;
+	if (strcmp(req->version, CIFSD_VERSION)) {
+		pr_err("Version mismatch: server %s, client %s, ignore.\n",
+			CIFSD_VERSION, req->version);
+		cifsd_tools_pid = 0;
+	}
+}
+
+static void handle_shutdown(struct nlmsghdr *nlh)
+{
+	struct cifsd_startup_shutdown *req = nlmsg_data(nlh);
+
+	if (cifsd_tools_pid && cifsd_tools_pid != req->pid) {
+		pr_err("A shutdown request from unknown PID %d, ignore.\n",
+			req->pid);
+		return;
+	}
+
+	/* shutdown */
 }
 
 static void cifsd_ipc_handle_message(struct nlmsghdr *nlh)
 {
 	switch (nlh->nlmsg_type) {
+	case CIFSD_EVENT_TREE_CONNECT_RESPONSE:
+		if (!VALID_IPC_MSG(nlh, struct cifsd_tree_connect_response))
+			return;
+		handle_response(nlh);
+		break;
 
+	case CIFSD_EVENT_LOGIN_RESPONSE:
+		if (!VALID_IPC_MSG(nlh, struct cifsd_login_response))
+			return;
+		handle_response(nlh);
+		break;
+
+	case CIFSD_EVENT_STARTING_UP:
+		handle_startup(nlh);
+		break;
+
+	case CIFSD_EVENT_SHUTTING_DOWN:
+		handle_shutdown(nlh);
+		break;
+
+	default:
+		pr_err("Uknown event type %d, ignore.\n", nlh->nlmsg_type);
+		break;
 	}
 }
 
 static void cifsd_ipc_receiving_loop(struct sk_buff *skb)
 {
-	if (!netlink_capable(skb, CAP_NET_ADMIN))
-		return;
-
 	if (skb->len >= NLMSG_HDRLEN) {
 		int payload_sz;
 		struct nlmsghdr *nlh;
@@ -65,6 +137,15 @@ static void cifsd_ipc_receiving_loop(struct sk_buff *skb)
 		cifsd_ipc_consume_message(nlh);
 	}
 	consume_skb(skb);
+}
+
+struct cifsd_ipc_msg *cifds_ipc_msg_alloc(size_t sz)
+{
+	return NULL;
+}
+
+void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg)
+{
 }
 
 void cifsd_ipc_free(void)

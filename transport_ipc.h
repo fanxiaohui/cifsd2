@@ -22,10 +22,6 @@
 #include <linux/wait.h>
 
 struct cifsd_ipc_msg {
-	unsigned long		handle;
-	struct hlist_node	hlist
-	wait_queue_head_t	wait;
-
 	unsigned int		type;
 	int			destination;
 
