@@ -225,7 +225,7 @@ static void cifsd_ipc_receiving_loop(struct sk_buff *skb)
 		cifsd_ipc_consume_message(nlh);
 	}
 out:
-	consume_skb(skb);
+	skb_pull(skb, skb->len);
 }
 
 static unsigned long long next_ipc_msg_handle(void)
