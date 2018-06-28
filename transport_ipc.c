@@ -38,7 +38,7 @@ static DECLARE_RWSEM(ipc_msg_table_lock);
 static unsigned long long ipc_msg_handle;
 
 static struct sock *nlsk;
-static pid_t cifsd_tools_pid;
+static unsigned int cifsd_tools_pid;
 
 #define CIFSD_IPC_MSG_HANDLE(m)						\
 	(*(unsigned long long *)m)
@@ -145,6 +145,8 @@ static int ipc_msg_send(struct cifsd_ipc_msg *msg)
 
 	nlmsg_end(skb, nlh);
 	ret = nlmsg_unicast(nlsk, skb, cifsd_tools_pid);
+	return ret;
+
 out:
 	nlmsg_free(skb);
 	return ret;
@@ -179,16 +181,16 @@ out:
 	return entry.msg;
 }
 
-static void handle_startup(struct cifsd_startup_shutdown *req)
+static int handle_startup(struct cifsd_startup_shutdown *req)
 {
-	cifsd_tools_pid = req->pid;
 	if (strcmp(req->version, CIFSD_VERSION)) {
 		pr_err("Version mismatch: server %s, client %s, ignore.\n",
 			CIFSD_VERSION, req->version);
-		cifsd_tools_pid = 0;
+		return -EINVAL;
 	}
 
 	/* start up */
+	return 0;
 }
 
 static void handle_shutdown(struct cifsd_startup_shutdown *req)
@@ -236,8 +238,10 @@ static void cifsd_ipc_consume_message(struct nlmsghdr *nlh)
 		break;
 
 	case CIFSD_EVENT_STARTING_UP:
-		if (payload)
-			handle_startup(payload);
+		if (payload) {
+			if (handle_startup(payload) == 0)
+				cifsd_tools_pid = nlh->nlmsg_pid;
+		}
 		break;
 
 	case CIFSD_EVENT_SHUTTING_DOWN:
@@ -263,6 +267,7 @@ static void cifsd_ipc_receiving_loop(struct sk_buff *skb)
 			goto out;
 
 		cifsd_ipc_consume_message(nlh);
+		skb_pull(skb, payload_sz);
 	}
 out:
 	skb_pull(skb, skb->len);
@@ -290,6 +295,7 @@ struct cifsd_ipc_msg *cifsd_ipc_login_request(void)
 	if (!req_msg)
 		return NULL;
 
+	req_msg->type = CIFSD_EVENT_LOGIN_REQUEST;
 	req = CIFSD_IPC_MSG_PAYLOAD(req_msg);
 	req->handle = next_ipc_msg_handle();
 
@@ -307,6 +313,7 @@ struct cifsd_ipc_msg *cifsd_ipc_tree_connect_request(void)
 	if (!req_msg)
 		return NULL;
 
+	req_msg->type = CIFSD_EVENT_TREE_CONNECT_REQUEST;
 	req = CIFSD_IPC_MSG_PAYLOAD(req_msg);
 	req->handle = next_ipc_msg_handle();
 
@@ -325,6 +332,7 @@ int cifsd_ipc_tree_disconnect_request(unsigned long long connection_id)
 	if (!msg)
 		return -ENOMEM;
 
+	msg->type = CIFSD_EVENT_TREE_DISCONNECT_REQUEST;
 	req = CIFSD_IPC_MSG_PAYLOAD(msg);
 	req->connection_id = connection_id;
 
@@ -343,6 +351,7 @@ int cifsd_ipc_logout_request(const char *account)
 	if (!msg)
 		return -ENOMEM;
 
+	msg->type = CIFSD_EVENT_LOGOUT_REQUEST;
 	req = CIFSD_IPC_MSG_PAYLOAD(msg);
 	strcpy(req->account, account);
 
