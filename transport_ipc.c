@@ -40,16 +40,6 @@ static unsigned long long ipc_msg_handle;
 static struct sock *nlsk;
 static pid_t cifsd_tools_pid;
 
-#define VALID_IPC_MSG(m,t) 						\
-	({								\
-		int ret = 1;						\
-		if (nlmsg_len(m) != sizeof(t)) {			\
-			pr_err("Bad message: %d\n", m->nlmsg_type);	\
-			ret = 0;					\
-		}							\
-		ret;							\
-	})
-
 #define CIFSD_IPC_MSG_HANDLE(m)						\
 	(*(unsigned long long *)m)
 
@@ -197,6 +187,8 @@ static void handle_startup(struct cifsd_startup_shutdown *req)
 			CIFSD_VERSION, req->version);
 		cifsd_tools_pid = 0;
 	}
+
+	/* start up */
 }
 
 static void handle_shutdown(struct cifsd_startup_shutdown *req)
