@@ -61,6 +61,40 @@ struct ipc_msg_table_entry {
 	struct cifsd_ipc_msg	*msg;
 };
 
+static const struct nla_policy cifsd_nl_policy[CIFSD_EVENT_MAX] = {
+	[CIFSD_EVENT_STARTING_UP] = {
+		.len = sizeof(struct cifsd_startup_shutdown),
+	},
+
+	[CIFSD_EVENT_SHUTTING_DOWN] = {
+		.len = sizeof(struct cifsd_startup_shutdown),
+	},
+
+	[CIFSD_EVENT_LOGIN_REQUEST] = {
+		.len = sizeof(struct cifsd_startup_shutdown),
+	},
+
+	[CIFSD_EVENT_LOGIN_RESPONSE] = {
+		.len = sizeof(struct cifsd_startup_shutdown),
+	},
+
+	[CIFSD_EVENT_TREE_CONNECT_REQUEST] = {
+		.len = sizeof(struct cifsd_startup_shutdown),
+	},
+
+	[CIFSD_EVENT_TREE_CONNECT_RESPONSE] = {
+		.len = sizeof(struct cifsd_startup_shutdown),
+	},
+
+	[CIFSD_EVENT_TREE_DISCONNECT_REQUEST] = {
+		.len = sizeof(struct cifsd_startup_shutdown),
+	},
+
+	[CIFSD_EVENT_LOGOUT_REQUEST] = {
+		.len = sizeof(struct cifsd_startup_shutdown),
+	},
+};
+
 static struct cifsd_ipc_msg *ipc_msg_alloc(size_t sz)
 {
 	struct cifsd_ipc_msg *msg;
@@ -79,9 +113,9 @@ void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg)
 	cifsd_free(msg);
 }
 
-static void handle_response(struct nlmsghdr *nlh)
+static void handle_response(void *payload, size_t sz)
 {
-	unsigned long long handle = CIFSD_IPC_MSG_HANDLE(nlmsg_data(nlh));
+	unsigned long long handle = CIFSD_IPC_MSG_HANDLE(payload);
 	struct ipc_msg_table_entry *entry;
 
 	down_read(&ipc_msg_table_lock);
@@ -89,11 +123,11 @@ static void handle_response(struct nlmsghdr *nlh)
 		if (handle != entry->handle)
 			continue;
 
-		entry->msg = ipc_msg_alloc(nlmsg_len(nlh));
+		entry->msg = ipc_msg_alloc(sz);
 		if (!entry->msg)
 			break;
 
-		memcpy(entry->msg, nlmsg_data(nlh), nlmsg_len(nlh));
+		memcpy(entry->msg, payload, sz);
 		wake_up_interruptible(&entry->wait);
 	}
 	up_read(&ipc_msg_table_lock);
@@ -113,7 +147,7 @@ static int ipc_msg_send(struct cifsd_ipc_msg *msg)
 	if (!nlh)
 		goto out;
 
-	ret = nla_put(skb, NLA_UNSPEC, msg->sz, CIFSD_IPC_MSG_PAYLOAD(msg));
+	ret = nla_put(skb, msg->type, msg->sz, CIFSD_IPC_MSG_PAYLOAD(msg));
 	if (ret) {
 		nlmsg_cancel(skb, nlh);
 		goto out;
@@ -155,10 +189,8 @@ out:
 	return entry.msg;
 }
 
-static void handle_startup(struct nlmsghdr *nlh)
+static void handle_startup(struct cifsd_startup_shutdown *req)
 {
-	struct cifsd_startup_shutdown *req = nlmsg_data(nlh);
-
 	cifsd_tools_pid = req->pid;
 	if (strcmp(req->version, CIFSD_VERSION)) {
 		pr_err("Version mismatch: server %s, client %s, ignore.\n",
@@ -167,10 +199,8 @@ static void handle_startup(struct nlmsghdr *nlh)
 	}
 }
 
-static void handle_shutdown(struct nlmsghdr *nlh)
+static void handle_shutdown(struct cifsd_startup_shutdown *req)
 {
-	struct cifsd_startup_shutdown *req = nlmsg_data(nlh);
-
 	if (cifsd_tools_pid && cifsd_tools_pid != req->pid) {
 		pr_err("A shutdown request from unknown PID %d, ignore.\n",
 			req->pid);
@@ -182,27 +212,45 @@ static void handle_shutdown(struct nlmsghdr *nlh)
 
 static void cifsd_ipc_consume_message(struct nlmsghdr *nlh)
 {
-	pr_err("> GOT %d\n", nlh->nlmsg_type);
+	struct nlattr *attrs[CIFSD_EVENT_MAX + 1];
+	void *payload = NULL;
+	int sz;
+
+	sz = nla_parse(attrs,
+			CIFSD_EVENT_MAX,
+			nlmsg_data(nlh),
+			nlmsg_len(nlh),
+			cifsd_nl_policy,
+			NULL);
+	if (sz) {
+		pr_err("Unable to parse IPC data %d\n", sz);
+		return;
+	}
+
+	if (attrs[nlh->nlmsg_type]) {
+		payload = nla_data(attrs[nlh->nlmsg_type]);
+		sz = nla_len(attrs[nlh->nlmsg_type]);
+	}
 
 	switch (nlh->nlmsg_type) {
 	case CIFSD_EVENT_TREE_CONNECT_RESPONSE:
-		if (!VALID_IPC_MSG(nlh, struct cifsd_tree_connect_response))
-			return;
-		handle_response(nlh);
+		if (payload)
+			handle_response(payload, sz);
 		break;
 
 	case CIFSD_EVENT_LOGIN_RESPONSE:
-		if (!VALID_IPC_MSG(nlh, struct cifsd_login_response))
-			return;
-		handle_response(nlh);
+		if (payload)
+			handle_response(payload, sz);
 		break;
 
 	case CIFSD_EVENT_STARTING_UP:
-		handle_startup(nlh);
+		if (payload)
+			handle_startup(payload);
 		break;
 
 	case CIFSD_EVENT_SHUTTING_DOWN:
-		handle_shutdown(nlh);
+		if (payload)
+			handle_shutdown(payload);
 		break;
 
 	default:
