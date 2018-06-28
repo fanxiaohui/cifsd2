@@ -31,6 +31,7 @@
 
 #include "buffer_pool.h"
 #include "transport_tcp.h"
+#include "transport_ipc.h"
 
 bool global_signing;
 
@@ -445,6 +446,8 @@ static int __init cifsd_server_init(void)
 	if (rc)
 		goto err1;
 
+	cifsd_ipc_init();
+
 #ifdef CONFIG_CIFS_SMB2_SERVER
 	rc = init_fidtable(&global_fidtable);
 	if (rc)
@@ -481,6 +484,7 @@ err1:
  */
 static void __exit cifsd_server_exit(void)
 {
+	cifsd_ipc_release();
 	cifsd_net_exit();
 
 	cifsd_tcp_destroy();
