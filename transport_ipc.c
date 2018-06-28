@@ -182,6 +182,8 @@ static void handle_shutdown(struct nlmsghdr *nlh)
 
 static void cifsd_ipc_consume_message(struct nlmsghdr *nlh)
 {
+	pr_err("> GOT %d\n", nlh->nlmsg_type);
+
 	switch (nlh->nlmsg_type) {
 	case CIFSD_EVENT_TREE_CONNECT_RESPONSE:
 		if (!VALID_IPC_MSG(nlh, struct cifsd_tree_connect_response))
@@ -273,7 +275,7 @@ struct cifsd_ipc_msg *cifsd_ipc_tree_connect_request(void)
 	return resp_msg;
 }
 
-int cifsd_ipc_tree_disconnect_request(unsigned long long connect_id)
+int cifsd_ipc_tree_disconnect_request(unsigned long long connection_id)
 {
 	struct cifsd_ipc_msg *msg;
 	struct cifsd_tree_disconnect_request *req;
@@ -284,7 +286,7 @@ int cifsd_ipc_tree_disconnect_request(unsigned long long connect_id)
 		return -ENOMEM;
 
 	req = CIFSD_IPC_MSG_PAYLOAD(msg);
-	req->connect_id = connect_id;
+	req->connection_id = connection_id;
 
 	ret = ipc_msg_send(msg);
 	cifsd_ipc_msg_free(msg);

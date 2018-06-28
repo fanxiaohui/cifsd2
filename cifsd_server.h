@@ -64,7 +64,7 @@ struct cifsd_tree_connect_response {
 } __packed;
 
 struct cifsd_tree_disconnect_request {
-	__u64	connect_id;
+	__u64	connection_id;
 } __packed;
 
 struct cifsd_logout_request {
