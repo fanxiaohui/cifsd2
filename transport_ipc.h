@@ -23,8 +23,6 @@
 
 struct cifsd_ipc_msg {
 	unsigned int		type;
-	int			destination;
-
 	unsigned int		sz;
 	unsigned char		____payload[0];
 };

@@ -68,10 +68,8 @@ static struct cifsd_ipc_msg *ipc_msg_alloc(size_t sz)
 	size_t msg_sz = sz + sizeof(struct cifsd_ipc_msg);
 
 	msg = cifsd_alloc(msg_sz);
-	if (msg) {
-		msg->destination = -1;
+	if (msg)
 		msg->sz = sz;
-	}
 	return msg;
 }
 
