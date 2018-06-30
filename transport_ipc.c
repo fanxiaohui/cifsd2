@@ -324,7 +324,7 @@ out:
 	return entry.msg;
 }
 
-struct cifsd_ipc_msg *cifsd_ipc_login_request(void)
+struct cifsd_ipc_msg *cifsd_ipc_login_request(const char *account)
 {
 	struct cifsd_ipc_msg *req_msg, *resp_msg;
 	struct cifsd_login_request *req;
@@ -336,6 +336,7 @@ struct cifsd_ipc_msg *cifsd_ipc_login_request(void)
 	req_msg->type = CIFSD_EVENT_LOGIN_REQUEST;
 	req = CIFSD_IPC_MSG_PAYLOAD(req_msg);
 	req->handle = next_ipc_msg_handle();
+	strncpy(req->account, account, sizeof(req->account));
 
 	resp_msg = ipc_msg_send_request(req_msg, req->handle);
 	cifsd_ipc_msg_free(req_msg);

@@ -32,7 +32,7 @@ struct cifsd_ipc_msg {
 
 void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg);
 
-struct cifsd_ipc_msg *cifsd_ipc_login_request(void);
+struct cifsd_ipc_msg *cifsd_ipc_login_request(const char *account);
 struct cifsd_ipc_msg *cifsd_ipc_tree_connect_request(void);
 int cifsd_ipc_tree_disconnect_request(unsigned long long connect_id);
 int cifsd_ipc_logout_request(const char *account);
