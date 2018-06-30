@@ -142,7 +142,7 @@ static int handle_shutdown_event(struct sk_buff *skb, struct genl_info *info)
 static int handle_unsupported_event(struct sk_buff *skb,
 				    struct genl_info *info)
 {
-	pr_err("Unknown IPC event: %d, ignore.\n", info->nlhdr->nlmsg_type);
+	pr_err("Unknown IPC event: %d, ignore.\n", info->genlhdr->cmd);
 	return -EINVAL;
 }
 
@@ -151,7 +151,7 @@ static int handle_generic_event(struct sk_buff *skb, struct genl_info *info)
 	void *payload;
 	int sz;
 
-	if (info->nlhdr->nlmsg_type >= CIFSD_EVENT_MAX) {
+	if (info->genlhdr->cmd >= CIFSD_EVENT_MAX) {
 		WARN_ON(1);
 		return -EINVAL;
 	}
@@ -159,11 +159,11 @@ static int handle_generic_event(struct sk_buff *skb, struct genl_info *info)
 	if (CIFSD_INVALID_IPC_VERSION(info))
 		return -EINVAL;
 
-	if (!info->attrs[info->nlhdr->nlmsg_type])
+	if (!info->attrs[info->genlhdr->cmd])
 		return -EINVAL;
 
-	payload = nla_data(info->attrs[info->nlhdr->nlmsg_type]);
-	sz = nla_len(info->attrs[info->nlhdr->nlmsg_type]);
+	payload = nla_data(info->attrs[info->genlhdr->cmd]);
+	sz = nla_len(info->attrs[info->genlhdr->cmd]);
 	return handle_response(payload, sz);
 }
 
