@@ -151,6 +151,11 @@ static int handle_generic_event(struct sk_buff *skb, struct genl_info *info)
 	void *payload;
 	int sz;
 
+	if (info->nlhdr->nlmsg_type >= CIFSD_EVENT_MAX) {
+		WARN_ON(1);
+		return -EINVAL;
+	}
+
 	if (CIFSD_INVALID_IPC_VERSION(info))
 		return -EINVAL;
 
