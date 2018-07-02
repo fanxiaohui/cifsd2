@@ -116,6 +116,7 @@ enum CIFSD_TREE_CONN_STATUS {
 /*
  * Tree connect request flags
  */
+#define CIFSD_TREE_CONN_FLAG_REQUEST_SMB1	(0)
 #define CIFSD_TREE_CONN_FLAG_REQUEST_IPV6	(1 << 0)
 #define CIFSD_TREE_CONN_FLAG_REQUEST_SMB2	(1 << 1)
 
