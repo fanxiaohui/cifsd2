@@ -111,7 +111,7 @@ enum CIFSD_TREE_CONN_STATUS {
  */
 #define CIFSD_TREE_CONN_FLAG_GUEST_ACCOUNT	(1 << 0)
 #define CIFSD_TREE_CONN_FLAG_READ_ONLY		(1 << 1)
-#define CIFSD_TREE_CONN_FLAG_ADMIN_ACCOUNT	(1 << 3)
+#define CIFSD_TREE_CONN_FLAG_ADMIN_ACCOUNT	(1 << 2)
 
 /*
  * Tree connect request flags
