@@ -62,6 +62,101 @@ struct ipc_msg_table_entry {
 	struct cifsd_ipc_msg	*msg;
 };
 
+static int handle_startup_event(struct sk_buff *skb, struct genl_info *info);
+static int handle_shutdown_event(struct sk_buff *skb, struct genl_info *info);
+static int handle_unsupported_event(struct sk_buff *skb,
+				    struct genl_info *info);
+static int handle_generic_event(struct sk_buff *skb, struct genl_info *info);
+
+static const struct nla_policy cifsd_nl_policy[CIFSD_EVENT_MAX] = {
+	[CIFSD_EVENT_STARTING_UP] = {
+		.len = sizeof(struct cifsd_startup_shutdown),
+	},
+
+	[CIFSD_EVENT_SHUTTING_DOWN] = {
+		.len = sizeof(struct cifsd_startup_shutdown),
+	},
+
+	[CIFSD_EVENT_LOGIN_REQUEST] = {
+		.len = sizeof(struct cifsd_login_request),
+	},
+
+	[CIFSD_EVENT_LOGIN_RESPONSE] = {
+		.len = sizeof(struct cifsd_login_response),
+	},
+
+	[CIFSD_EVENT_TREE_CONNECT_REQUEST] = {
+		.len = sizeof(struct cifsd_tree_connect_request),
+	},
+
+	[CIFSD_EVENT_TREE_CONNECT_RESPONSE] = {
+		.len = sizeof(struct cifsd_tree_connect_response),
+	},
+
+	[CIFSD_EVENT_TREE_DISCONNECT_REQUEST] = {
+		.len = sizeof(struct cifsd_tree_disconnect_request),
+	},
+
+	[CIFSD_EVENT_LOGOUT_REQUEST] = {
+		.len = sizeof(struct cifsd_logout_request),
+	},
+};
+
+static const struct genl_ops cifsd_genl_ops[] = {
+	{
+		.cmd	= CIFSD_EVENT_STARTING_UP,
+		.doit	= handle_startup_event,
+		.policy = cifsd_nl_policy,
+	},
+	{
+		.cmd	= CIFSD_EVENT_SHUTTING_DOWN,
+		.doit	= handle_shutdown_event,
+		.policy = cifsd_nl_policy,
+	},
+	{
+		.cmd	= CIFSD_EVENT_LOGIN_REQUEST,
+		.doit	= handle_unsupported_event,
+		.policy = cifsd_nl_policy,
+	},
+	{
+		.cmd	= CIFSD_EVENT_LOGIN_RESPONSE,
+		.doit	= handle_generic_event,
+		.policy = cifsd_nl_policy,
+	},
+	{
+		.cmd	= CIFSD_EVENT_TREE_CONNECT_REQUEST,
+		.doit	= handle_unsupported_event,
+		.policy = cifsd_nl_policy,
+	},
+	{
+		.cmd	= CIFSD_EVENT_TREE_CONNECT_RESPONSE,
+		.doit	= handle_generic_event,
+		.policy = cifsd_nl_policy,
+	},
+	{
+		.cmd	= CIFSD_EVENT_TREE_DISCONNECT_REQUEST,
+		.doit	= handle_unsupported_event,
+		.policy = cifsd_nl_policy,
+	},
+	{
+		.cmd	= CIFSD_EVENT_LOGOUT_REQUEST,
+		.doit	= handle_unsupported_event,
+		.policy = cifsd_nl_policy,
+	},
+};
+
+struct genl_family cifsd_genl_family = {
+	.name		= CIFSD_GENL_NAME,
+	.version	= CIFSD_GENL_VERSION,
+	.hdrsize	= 0,
+	.maxattr	= CIFSD_EVENT_MAX,
+	.netnsok	= true,
+	.module		= THIS_MODULE,
+	.ops		= cifsd_genl_ops,
+	.n_ops		= ARRAY_SIZE(cifsd_genl_ops),
+};
+
+
 static struct cifsd_ipc_msg *ipc_msg_alloc(size_t sz)
 {
 	struct cifsd_ipc_msg *msg;
@@ -179,94 +274,6 @@ static unsigned long long next_ipc_msg_handle(void)
 
 	return ret;
 }
-
-static const struct nla_policy cifsd_nl_policy[CIFSD_EVENT_MAX] = {
-	[CIFSD_EVENT_STARTING_UP] = {
-		.len = sizeof(struct cifsd_startup_shutdown),
-	},
-
-	[CIFSD_EVENT_SHUTTING_DOWN] = {
-		.len = sizeof(struct cifsd_startup_shutdown),
-	},
-
-	[CIFSD_EVENT_LOGIN_REQUEST] = {
-		.len = sizeof(struct cifsd_login_request),
-	},
-
-	[CIFSD_EVENT_LOGIN_RESPONSE] = {
-		.len = sizeof(struct cifsd_login_response),
-	},
-
-	[CIFSD_EVENT_TREE_CONNECT_REQUEST] = {
-		.len = sizeof(struct cifsd_tree_connect_request),
-	},
-
-	[CIFSD_EVENT_TREE_CONNECT_RESPONSE] = {
-		.len = sizeof(struct cifsd_tree_connect_response),
-	},
-
-	[CIFSD_EVENT_TREE_DISCONNECT_REQUEST] = {
-		.len = sizeof(struct cifsd_tree_disconnect_request),
-	},
-
-	[CIFSD_EVENT_LOGOUT_REQUEST] = {
-		.len = sizeof(struct cifsd_logout_request),
-	},
-};
-
-static const struct genl_ops cifsd_genl_ops[] = {
-	{
-		.cmd	= CIFSD_EVENT_STARTING_UP,
-		.doit	= handle_startup_event,
-		.policy = cifsd_nl_policy,
-	},
-	{
-		.cmd	= CIFSD_EVENT_SHUTTING_DOWN,
-		.doit	= handle_shutdown_event,
-		.policy = cifsd_nl_policy,
-	},
-	{
-		.cmd	= CIFSD_EVENT_LOGIN_REQUEST,
-		.doit	= handle_unsupported_event,
-		.policy = cifsd_nl_policy,
-	},
-	{
-		.cmd	= CIFSD_EVENT_LOGIN_RESPONSE,
-		.doit	= handle_generic_event,
-		.policy = cifsd_nl_policy,
-	},
-	{
-		.cmd	= CIFSD_EVENT_TREE_CONNECT_REQUEST,
-		.doit	= handle_unsupported_event,
-		.policy = cifsd_nl_policy,
-	},
-	{
-		.cmd	= CIFSD_EVENT_TREE_CONNECT_RESPONSE,
-		.doit	= handle_generic_event,
-		.policy = cifsd_nl_policy,
-	},
-	{
-		.cmd	= CIFSD_EVENT_TREE_DISCONNECT_REQUEST,
-		.doit	= handle_unsupported_event,
-		.policy = cifsd_nl_policy,
-	},
-	{
-		.cmd	= CIFSD_EVENT_LOGOUT_REQUEST,
-		.doit	= handle_unsupported_event,
-		.policy = cifsd_nl_policy,
-	},
-};
-
-struct genl_family cifsd_genl_family = {
-	.name		= CIFSD_GENL_NAME,
-	.version	= CIFSD_GENL_VERSION,
-	.hdrsize	= 0,
-	.maxattr	= CIFSD_EVENT_MAX,
-	.netnsok	= true,
-	.module		= THIS_MODULE,
-	.ops		= cifsd_genl_ops,
-	.n_ops		= ARRAY_SIZE(cifsd_genl_ops),
-};
 
 static int ipc_msg_send(struct cifsd_ipc_msg *msg)
 {
