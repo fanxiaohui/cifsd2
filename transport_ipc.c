@@ -341,14 +341,18 @@ struct cifsd_ipc_msg *cifsd_ipc_login_request(const char *account)
 	req_msg->type = CIFSD_EVENT_LOGIN_REQUEST;
 	req = CIFSD_IPC_MSG_PAYLOAD(req_msg);
 	req->handle = next_ipc_msg_handle();
-	strncpy(req->account, account, sizeof(req->account));
+	strncpy(req->account, account, sizeof(req->account) - 1);
 
 	resp_msg = ipc_msg_send_request(req_msg, req->handle);
 	cifsd_ipc_msg_free(req_msg);
 	return resp_msg;
 }
 
-struct cifsd_ipc_msg *cifsd_ipc_tree_connect_request(void)
+struct cifsd_ipc_msg *
+cifsd_ipc_tree_connect_request(const int protocol,
+			       const char *share,
+			       const char *account,
+			       const struct sockaddr *peer_addr)
 {
 	struct cifsd_ipc_msg *req_msg, *resp_msg;
 	struct cifsd_tree_connect_request *req;
@@ -359,7 +363,14 @@ struct cifsd_ipc_msg *cifsd_ipc_tree_connect_request(void)
 
 	req_msg->type = CIFSD_EVENT_TREE_CONNECT_REQUEST;
 	req = CIFSD_IPC_MSG_PAYLOAD(req_msg);
+
 	req->handle = next_ipc_msg_handle();
+	req->flags = protocol;
+	strncpy(req->account, account, sizeof(req->account) - 1);
+	strncpy(req->share, share, sizeof(req->share) - 1);
+	snprintf(req->peer_addr, sizeof(req->peer_addr), "%pIS", peer_addr);
+	if (peer_addr->sa_family == AF_INET6)
+		req->flags &= CIFSD_TREE_CONN_FLAG_REQUEST_IPV6;
 
 	resp_msg = ipc_msg_send_request(req_msg, req->handle);
 	cifsd_ipc_msg_free(req_msg);
