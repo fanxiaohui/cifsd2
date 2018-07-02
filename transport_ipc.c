@@ -82,7 +82,7 @@ static int handle_response(void *payload, size_t sz)
 {
 	unsigned long long handle = CIFSD_IPC_MSG_HANDLE(payload);
 	struct ipc_msg_table_entry *entry;
-	int ret = -EINVAL;
+	int ret = 0;
 
 	down_read(&ipc_msg_table_lock);
 	hash_for_each_possible(ipc_msg_table, entry, hlist, handle) {
