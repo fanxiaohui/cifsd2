@@ -38,8 +38,7 @@ static unsigned long long ipc_msg_handle;
 
 static unsigned int cifsd_tools_pid;
 
-#define CIFSD_IPC_MSG_HANDLE(m)						\
-	(*(unsigned long long *)m)
+#define CIFSD_IPC_MSG_HANDLE(m)	(*(unsigned int *)m)
 
 #define CIFSD_INVALID_IPC_VERSION(m)					\
 	({								\
@@ -63,7 +62,7 @@ struct cifsd_ipc_msg {
 	((void *)(m) + offsetof(struct cifsd_ipc_msg, ____payload))
 
 struct ipc_msg_table_entry {
-	unsigned long long	handle;
+	unsigned int		handle;
 	struct hlist_node	hlist;
 	wait_queue_head_t	wait;
 
@@ -182,7 +181,7 @@ static void ipc_msg_free(struct cifsd_ipc_msg *msg)
 
 static int handle_response(void *payload, size_t sz)
 {
-	unsigned long long handle = CIFSD_IPC_MSG_HANDLE(payload);
+	unsigned int handle = CIFSD_IPC_MSG_HANDLE(payload);
 	struct ipc_msg_table_entry *entry;
 	int ret = 0;
 
@@ -269,9 +268,9 @@ static int handle_generic_event(struct sk_buff *skb, struct genl_info *info)
 	return handle_response(payload, sz);
 }
 
-static unsigned long long next_ipc_msg_handle(void)
+static unsigned int next_ipc_msg_handle(void)
 {
-	unsigned long long ret;
+	unsigned int ret;
 
 	down_write(&ipc_msg_table_lock);
 	do {
@@ -315,7 +314,7 @@ out:
 }
 
 static void *ipc_msg_send_request(struct cifsd_ipc_msg *msg,
-				  unsigned long long handle)
+				  unsigned int handle)
 {
 	struct ipc_msg_table_entry entry;
 	int ret;
