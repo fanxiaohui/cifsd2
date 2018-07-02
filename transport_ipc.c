@@ -27,7 +27,6 @@
 
 #include "transport_ipc.h"
 #include "buffer_pool.h"
-#include "cifsd_server.h"  /* FIXME */
 
 #define IPC_WAIT_TIMEOUT	(2 * HZ)
 
@@ -54,12 +53,21 @@ static unsigned int cifsd_tools_pid;
 		ret;							\
 	})
 
+struct cifsd_ipc_msg {
+	unsigned int		type;
+	unsigned int		sz;
+	unsigned char		____payload[0];
+};
+
+#define CIFSD_IPC_MSG_PAYLOAD(m)	\
+	((void *)(m) + offsetof(struct cifsd_ipc_msg, ____payload))
+
 struct ipc_msg_table_entry {
 	unsigned long long	handle;
 	struct hlist_node	hlist;
 	wait_queue_head_t	wait;
 
-	struct cifsd_ipc_msg	*msg;
+	void			*response;
 };
 
 static int handle_startup_event(struct sk_buff *skb, struct genl_info *info);
@@ -156,7 +164,6 @@ struct genl_family cifsd_genl_family = {
 	.n_ops		= ARRAY_SIZE(cifsd_genl_ops),
 };
 
-
 static struct cifsd_ipc_msg *ipc_msg_alloc(size_t sz)
 {
 	struct cifsd_ipc_msg *msg;
@@ -168,7 +175,7 @@ static struct cifsd_ipc_msg *ipc_msg_alloc(size_t sz)
 	return msg;
 }
 
-void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg)
+static void ipc_msg_free(struct cifsd_ipc_msg *msg)
 {
 	cifsd_free(msg);
 }
@@ -184,13 +191,13 @@ static int handle_response(void *payload, size_t sz)
 		if (handle != entry->handle)
 			continue;
 
-		entry->msg = ipc_msg_alloc(sz);
-		if (!entry->msg) {
+		entry->response = cifsd_alloc(sz);
+		if (!entry->response) {
 			ret = -ENOMEM;
 			break;
 		}
 
-		memcpy(entry->msg, payload, sz);
+		memcpy(entry->response, payload, sz);
 		wake_up_interruptible(&entry->wait);
 		ret = 0;
 		break;
@@ -307,13 +314,13 @@ out:
 	return ret;
 }
 
-static struct cifsd_ipc_msg *ipc_msg_send_request(struct cifsd_ipc_msg *msg,
-						  unsigned long long handle)
+static void *ipc_msg_send_request(struct cifsd_ipc_msg *msg,
+				  unsigned long long handle)
 {
 	struct ipc_msg_table_entry entry;
 	int ret;
 
-	entry.msg = NULL;
+	entry.response = NULL;
 	init_waitqueue_head(&entry.wait);
 
 	down_write(&ipc_msg_table_lock);
@@ -326,50 +333,52 @@ static struct cifsd_ipc_msg *ipc_msg_send_request(struct cifsd_ipc_msg *msg,
 		goto out;
 
 	ret = wait_event_interruptible_timeout(entry.wait,
-					       entry.msg != NULL,
+					       entry.response != NULL,
 					       IPC_WAIT_TIMEOUT);
 out:
 	down_write(&ipc_msg_table_lock);
 	hash_del(&entry.hlist);
 	up_write(&ipc_msg_table_lock);
 
-	return entry.msg;
+	return entry.response;
 }
 
-struct cifsd_ipc_msg *cifsd_ipc_login_request(const char *account)
+struct cifsd_login_response *cifsd_ipc_login_request(const char *account)
 {
-	struct cifsd_ipc_msg *req_msg, *resp_msg;
+	struct cifsd_ipc_msg *msg;
 	struct cifsd_login_request *req;
+	struct cifsd_login_response *resp;
 
-	req_msg = ipc_msg_alloc(sizeof(struct cifsd_login_request));
-	if (!req_msg)
+	msg = ipc_msg_alloc(sizeof(struct cifsd_login_request));
+	if (!msg)
 		return NULL;
 
-	req_msg->type = CIFSD_EVENT_LOGIN_REQUEST;
-	req = CIFSD_IPC_MSG_PAYLOAD(req_msg);
+	msg->type = CIFSD_EVENT_LOGIN_REQUEST;
+	req = CIFSD_IPC_MSG_PAYLOAD(msg);
 	req->handle = next_ipc_msg_handle();
 	strncpy(req->account, account, sizeof(req->account) - 1);
 
-	resp_msg = ipc_msg_send_request(req_msg, req->handle);
-	cifsd_ipc_msg_free(req_msg);
-	return resp_msg;
+	resp = ipc_msg_send_request(msg, req->handle);
+	ipc_msg_free(msg);
+	return resp;
 }
 
-struct cifsd_ipc_msg *
+struct cifsd_tree_connect_response *
 cifsd_ipc_tree_connect_request(const int protocol,
 			       const char *share,
 			       const char *account,
 			       const struct sockaddr *peer_addr)
 {
-	struct cifsd_ipc_msg *req_msg, *resp_msg;
+	struct cifsd_ipc_msg *msg;
 	struct cifsd_tree_connect_request *req;
+	struct cifsd_tree_connect_response *resp;
 
-	req_msg = ipc_msg_alloc(sizeof(struct cifsd_tree_connect_request));
-	if (!req_msg)
+	msg = ipc_msg_alloc(sizeof(struct cifsd_tree_connect_request));
+	if (!msg)
 		return NULL;
 
-	req_msg->type = CIFSD_EVENT_TREE_CONNECT_REQUEST;
-	req = CIFSD_IPC_MSG_PAYLOAD(req_msg);
+	msg->type = CIFSD_EVENT_TREE_CONNECT_REQUEST;
+	req = CIFSD_IPC_MSG_PAYLOAD(msg);
 
 	req->handle = next_ipc_msg_handle();
 	req->flags = protocol;
@@ -379,9 +388,9 @@ cifsd_ipc_tree_connect_request(const int protocol,
 	if (peer_addr->sa_family == AF_INET6)
 		req->flags &= CIFSD_TREE_CONN_FLAG_REQUEST_IPV6;
 
-	resp_msg = ipc_msg_send_request(req_msg, req->handle);
-	cifsd_ipc_msg_free(req_msg);
-	return resp_msg;
+	resp = ipc_msg_send_request(msg, req->handle);
+	ipc_msg_free(msg);
+	return resp;
 }
 
 int cifsd_ipc_tree_disconnect_request(unsigned long long connection_id)
@@ -399,7 +408,7 @@ int cifsd_ipc_tree_disconnect_request(unsigned long long connection_id)
 	req->connection_id = connection_id;
 
 	ret = ipc_msg_send(msg);
-	cifsd_ipc_msg_free(msg);
+	ipc_msg_free(msg);
 	return ret;
 }
 
@@ -418,7 +427,7 @@ int cifsd_ipc_logout_request(const char *account)
 	strcpy(req->account, account);
 
 	ret = ipc_msg_send(msg);
-	cifsd_ipc_msg_free(msg);
+	ipc_msg_free(msg);
 	return ret;
 }
 

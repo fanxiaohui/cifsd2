@@ -20,21 +20,13 @@
 #define __CIFSD_TRANSPORT_IPC_H__
 
 #include <linux/wait.h>
+#include "cifsd_server.h"  /* FIXME */
 
-struct cifsd_ipc_msg {
-	unsigned int		type;
-	unsigned int		sz;
-	unsigned char		____payload[0];
-};
 
-#define CIFSD_IPC_MSG_PAYLOAD(m)	\
-	((void *)(m) + offsetof(struct cifsd_ipc_msg, ____payload))
+struct cifsd_login_response *
+cifsd_ipc_login_request(const char *account);
 
-void cifsd_ipc_msg_free(struct cifsd_ipc_msg *msg);
-
-struct cifsd_ipc_msg *cifsd_ipc_login_request(const char *account);
-
-struct cifsd_ipc_msg *
+struct cifsd_tree_connect_response *
 cifsd_ipc_tree_connect_request(const int protocol,
 			       const char *share,
 			       const char *account,
