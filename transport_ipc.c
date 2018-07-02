@@ -63,6 +63,7 @@ struct cifsd_ipc_msg {
 
 struct ipc_msg_table_entry {
 	unsigned int		handle;
+	unsigned int		type;
 	struct hlist_node	hlist;
 	wait_queue_head_t	wait;
 
@@ -179,7 +180,7 @@ static void ipc_msg_free(struct cifsd_ipc_msg *msg)
 	cifsd_free(msg);
 }
 
-static int handle_response(void *payload, size_t sz)
+static int handle_response(int type, void *payload, size_t sz)
 {
 	unsigned int handle = CIFSD_IPC_MSG_HANDLE(payload);
 	struct ipc_msg_table_entry *entry;
@@ -194,6 +195,15 @@ static int handle_response(void *payload, size_t sz)
 		if (!entry->response) {
 			ret = -ENOMEM;
 			break;
+		}
+
+		/*
+		 * Response message type value should be equal to
+		 * request message type + 1.
+		 */
+		if (entry->type + 1 != type) {
+			pr_err("Waiting for IPC type %d, got %d. Ignore.\n",
+				entry->type + 1, type);
 		}
 
 		memcpy(entry->response, payload, sz);
@@ -251,8 +261,9 @@ static int handle_generic_event(struct sk_buff *skb, struct genl_info *info)
 {
 	void *payload;
 	int sz;
+	int type = info->genlhdr->cmd;
 
-	if (info->genlhdr->cmd >= CIFSD_EVENT_MAX) {
+	if (type >= CIFSD_EVENT_MAX) {
 		WARN_ON(1);
 		return -EINVAL;
 	}
@@ -260,12 +271,12 @@ static int handle_generic_event(struct sk_buff *skb, struct genl_info *info)
 	if (CIFSD_INVALID_IPC_VERSION(info))
 		return -EINVAL;
 
-	if (!info->attrs[info->genlhdr->cmd])
+	if (!info->attrs[type])
 		return -EINVAL;
 
 	payload = nla_data(info->attrs[info->genlhdr->cmd]);
 	sz = nla_len(info->attrs[info->genlhdr->cmd]);
-	return handle_response(payload, sz);
+	return handle_response(type, payload, sz);
 }
 
 static unsigned int next_ipc_msg_handle(void)
@@ -319,6 +330,7 @@ static void *ipc_msg_send_request(struct cifsd_ipc_msg *msg,
 	struct ipc_msg_table_entry entry;
 	int ret;
 
+	entry.type = msg->type;
 	entry.response = NULL;
 	init_waitqueue_head(&entry.wait);
 
