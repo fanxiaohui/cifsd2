@@ -34,6 +34,7 @@ cifsd_ipc_tree_connect_request(const int protocol,
 
 int cifsd_ipc_tree_disconnect_request(unsigned long long connect_id);
 int cifsd_ipc_logout_request(const char *account);
+struct cifsd_heartbeat *cifsd_ipc_heartbeat_request(void);
 
 void cifsd_ipc_release(void);
 int cifsd_ipc_init(void);

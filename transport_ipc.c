@@ -77,6 +77,14 @@ static int handle_unsupported_event(struct sk_buff *skb,
 static int handle_generic_event(struct sk_buff *skb, struct genl_info *info);
 
 static const struct nla_policy cifsd_nl_policy[CIFSD_EVENT_MAX] = {
+	[CIFSD_EVENT_HEARTBEAT_REQUEST] = {
+		.len = sizeof(struct cifsd_heartbeat),
+	},
+
+	[CIFSD_EVENT_HEARTBEAT_RESPONSE] = {
+		.len = sizeof(struct cifsd_heartbeat),
+	},
+
 	[CIFSD_EVENT_STARTING_UP] = {
 		.len = sizeof(struct cifsd_startup_shutdown),
 	},
@@ -111,6 +119,16 @@ static const struct nla_policy cifsd_nl_policy[CIFSD_EVENT_MAX] = {
 };
 
 static const struct genl_ops cifsd_genl_ops[] = {
+	{
+		.cmd	= CIFSD_EVENT_HEARTBEAT_REQUEST,
+		.doit	= handle_unsupported_event,
+		.policy	= cifsd_nl_policy,
+	},
+	{
+		.cmd	= CIFSD_EVENT_HEARTBEAT_RESPONSE,
+		.doit	= handle_generic_event,
+		.policy = cifsd_nl_policy,
+	},
 	{
 		.cmd	= CIFSD_EVENT_STARTING_UP,
 		.doit	= handle_startup_event,
@@ -224,8 +242,20 @@ static int handle_startup_event(struct sk_buff *skb, struct genl_info *info)
 	if (!info->attrs[CIFSD_EVENT_STARTING_UP])
 		 return -EINVAL;
 
-	if (cifsd_tools_pid)
-		return -EINVAL;
+	if (cifsd_tools_pid) {
+		struct cifsd_heartbeat *beat;
+
+		beat = cifsd_ipc_heartbeat_request();
+		if (beat) {
+			cifsd_free(beat);
+			return -EINVAL;
+		}
+
+		pr_err("User space daemon [pid %d] is unresponvice.\n",
+			cifsd_tools_pid);
+		pr_err("Switching to a new user space daemon [pid %d]\n",
+			info->snd_portid);
+	}
 
 	cifsd_tools_pid = info->snd_portid;
 	/* start up */
@@ -440,6 +470,24 @@ int cifsd_ipc_logout_request(const char *account)
 	ret = ipc_msg_send(msg);
 	ipc_msg_free(msg);
 	return ret;
+}
+
+struct cifsd_heartbeat *cifsd_ipc_heartbeat_request(void)
+{
+	struct cifsd_ipc_msg *msg;
+	struct cifsd_heartbeat *out, *in;
+
+	msg = ipc_msg_alloc(sizeof(struct cifsd_heartbeat));
+	if (!msg)
+		return NULL;
+
+	msg->type = CIFSD_EVENT_HEARTBEAT_REQUEST;
+	out = CIFSD_IPC_MSG_PAYLOAD(msg);
+	out->handle = next_ipc_msg_handle();
+
+	in = ipc_msg_send_request(msg, out->handle);
+	ipc_msg_free(msg);
+	return in;
 }
 
 void cifsd_ipc_release(void)
