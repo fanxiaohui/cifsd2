@@ -77,6 +77,10 @@ static int handle_unsupported_event(struct sk_buff *skb,
 static int handle_generic_event(struct sk_buff *skb, struct genl_info *info);
 
 static const struct nla_policy cifsd_nl_policy[CIFSD_EVENT_MAX] = {
+	[CIFSD_EVENT_UNSPEC] = {
+		.len = 0,
+	},
+
 	[CIFSD_EVENT_HEARTBEAT_REQUEST] = {
 		.len = sizeof(struct cifsd_heartbeat),
 	},
@@ -119,6 +123,11 @@ static const struct nla_policy cifsd_nl_policy[CIFSD_EVENT_MAX] = {
 };
 
 static const struct genl_ops cifsd_genl_ops[] = {
+	{
+		.cmd	= CIFSD_EVENT_UNSPEC,
+		.doit	= handle_unsupported_event,
+		.policy	= cifsd_nl_policy,
+	},
 	{
 		.cmd	= CIFSD_EVENT_HEARTBEAT_REQUEST,
 		.doit	= handle_unsupported_event,
