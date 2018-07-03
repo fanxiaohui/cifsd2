@@ -260,9 +260,7 @@ static int handle_startup_event(struct sk_buff *skb, struct genl_info *info)
 			return -EINVAL;
 		}
 
-		pr_err("User space daemon [pid %d] is unresponvice.\n",
-			cifsd_tools_pid);
-		pr_err("Switching to a new user space daemon [pid %d]\n",
+		pr_err("Switching to a new user space daemon [pid %u]\n",
 			info->snd_portid);
 	}
 
