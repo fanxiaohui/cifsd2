@@ -19,44 +19,22 @@
 #ifndef __USER_MANAGEMENT_H__
 #define __USER_MANAGEMENT_H__
 
-#include <linux/workqueue.h>
-#include <linux/hashtable.h>
-#include <linux/uidgid.h>
-#include <linux/idr.h>
+#include "../glob.h"  /* FIXME */
 
 #define UF_GUEST_ACCOUNT	(1 << 0)
 #define UF_PENDING_REMOVAL	(1 << 1)
 
 struct cifsd_user {
+	unsigned short		flags;
+
 	char			*name;
-	/* Max size CIFS_NTHASH_SIZE */
+	
+	size_t			passkey_sz;
 	char			*passkey;
 
-	kuid_t			uid;
-	kgid_t			gid;
-
-	atomic_t		refcount;
-	struct hlist_node	hlist;
-	struct work_struct	free_work;
-
-	unsigned short		flags;
+	unsigned int		uid;
+	unsigned int		gid;
 };
-
-extern void __put_cifsd_user(struct cifsd_user *user);
-
-static inline void put_cifsd_user(struct cifsd_user *user)
-{
-	if (!atomic_dec_and_test(&user->refcount))
-		return;
-	__put_cifsd_user(user);
-}
-
-static inline struct cifsd_user *get_cifsd_user(struct cifsd_user *user)
-{
-	if (!atomic_inc_not_zero(&user->refcount))
-		return NULL;
-	return user;
-}
 
 static inline bool user_guest(struct cifsd_user *user)
 {
@@ -78,16 +56,24 @@ static inline char *user_name(struct cifsd_user *user)
 	return user->name;
 }
 
-static inline kuid_t user_uid(struct cifsd_user *user)
+static inline unsigned int user_uid(struct cifsd_user *user)
 {
 	return user->uid;
 }
 
-static inline kgid_t user_gid(struct cifsd_user *user)
+static inline unsigned int user_gid(struct cifsd_user *user)
 {
 	return user->gid;
 }
 
+
+struct cifsd_user *cifsd_alloc_user(const char *account);
+void cifsd_free_user(struct cifsd_user *user);
+
+
+/* TO BE REMOVED */
+
+void put_cifsd_user(struct cifsd_user *user);
 unsigned short alloc_smb1_vuid(void);
 void free_smb1_vuid(unsigned short uid);
 struct cifsd_user *um_user_search(char *name);

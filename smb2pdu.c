@@ -1457,7 +1457,7 @@ int smb2_sess_setup(struct cifsd_work *work)
 		}
 
 		cifsd_debug("session setup request for user %s\n", username);
-		sess->user = cifsd_is_user_present(username);
+		sess->user = cifsd_alloc_user(username);
 		if (!sess->user) {
 			cifsd_debug("user (%s) is not present in database or guest account is not set\n",
 				username);
@@ -1871,7 +1871,7 @@ int smb2_session_logoff(struct cifsd_work *work)
 	sess->valid = 0;
 	sess->state = SMB2_SESSION_EXPIRED;
 
-	put_cifsd_user(sess->user);
+	cifsd_free_user(sess->user);
 	sess->user = NULL;
 
 	/* let start_tcp_sess free connection info now */
@@ -2918,8 +2918,8 @@ int smb2_open(struct cifsd_work *work)
 	}
 
 	if (created) {
-		i_uid_write(FP_INODE(fp), user_uid(sess->user).val);
-		i_gid_write(FP_INODE(fp), user_gid(sess->user).val);
+		i_uid_write(FP_INODE(fp), user_uid(sess->user));
+		i_gid_write(FP_INODE(fp), user_gid(sess->user));
 	}
 
 	fp->create_time = cifs_UnixTimeToNT(from_kern_timespec(stat.ctime));

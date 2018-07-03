@@ -16,174 +16,101 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
 
-#include <linux/jhash.h>
-#include <linux/spinlock.h>
-#include <linux/slab.h>
-#include <linux/rwsem.h>
-
 #include "user.h"
+#include "../buffer_pool.h"
+#include "../transport_ipc.h"
+#include "../cifsd_server.h" /* FIXME */
 
-#define USERS_HASH_BITS		3
-static DEFINE_HASHTABLE(users_table, USERS_HASH_BITS);
-static DECLARE_RWSEM(users_table_lock);
-static DEFINE_IDA(smb1_vuids_ida);
+struct cifsd_user *cifsd_alloc_user(const char *account)
+{
+	struct cifsd_login_response *resp;
+	struct cifsd_user *user;
+
+	resp = cifsd_ipc_login_request(account);
+	if (!resp)
+		return NULL;
+
+	user = cifsd_alloc(sizeof(struct cifsd_user));
+	if (!user)
+		goto out;
+
+	user->name = kstrdup(account, GFP_KERNEL);
+	user->flags = resp->status;
+	user->passkey_sz = resp->hash_sz;
+	user->passkey = cifsd_alloc(resp->hash_sz);
+	if (user->passkey)
+		memcpy(user->passkey, resp->hash, resp->hash_sz);
+
+	if (!user->name || !user->passkey) {
+		kfree(user->name);
+		cifsd_free(user->passkey);
+		cifsd_free(user);
+		user = NULL;
+	}
+out:
+	cifsd_free(resp);
+	return user;
+}
+
+void cifsd_free_user(struct cifsd_user *user)
+{
+	cifsd_ipc_logout_request(user->name);
+	kfree(user->name);
+	cifsd_free(user->passkey);
+	cifsd_free(user);
+}
+
+
+
+/* TO BE REMOVED */
+
+void put_cifsd_user(struct cifsd_user *user)
+{
+	pr_err("IMPLEMENT ME\n");
+}
 
 unsigned short alloc_smb1_vuid(void)
 {
-	int vuid;
-
-	vuid = ida_simple_get(&smb1_vuids_ida, 1, 0xFFFE, GFP_KERNEL);
-	return vuid < 0 ? 0 : vuid;
+	pr_err("IMPLEMENT ME\n");
+	return 0;
 }
 
 void free_smb1_vuid(unsigned short uid)
 {
-	ida_simple_remove(&smb1_vuids_ida, uid);
-}
-
-static unsigned int um_hash(char *name)
-{
-	return jhash(name, strlen(name), 0);
-}
-
-static void um_kill_user(struct cifsd_user *user)
-{
-	kfree(user);
-}
-
-static void deferred_user_free(struct work_struct *work)
-{
-	struct cifsd_user *user = container_of(work,
-					       struct cifsd_user,
-					       free_work);
-
-	down_write(&users_table_lock);
-	hash_del(&user->hlist);
-	up_write(&users_table_lock);
-	um_kill_user(user);
-}
-
-void __put_cifsd_user(struct cifsd_user *user)
-{
-	schedule_work(&user->free_work);
-}
-
-static struct cifsd_user *__um_user_search(char *name)
-{
-	struct cifsd_user *user;
-	unsigned int key = um_hash(name);
-
-	hash_for_each_possible(users_table, user, hlist, key) {
-		if (!strcmp(name, user->name))
-			return user;
-	}
-	return NULL;
+	pr_err("IMPLEMENT ME\n");
 }
 
 struct cifsd_user *um_user_search(char *name)
 {
-	struct cifsd_user *user, *ret = NULL;
-
-	down_read(&users_table_lock);
-	user = __um_user_search(name);
-	/*
-	 * Check that we can get user struct. get_cifsd_user()
-	 * will return NULL if cifsd_user is going to be freed
-	 * soon.
-	 */
-	if (user)
-		ret = get_cifsd_user(user);
-	up_read(&users_table_lock);
-	return ret;
+	pr_err("IMPLEMENT ME\n");
+	return NULL;
 }
 
 struct cifsd_user *um_user_search_guest(void)
 {
-	struct cifsd_user *user, *ret = NULL;
-	int i;
-
-	down_read(&users_table_lock);
-	hash_for_each(users_table, i, user, hlist) {
-		if (user_guest(user)) {
-			ret = get_cifsd_user(user);
-			if (ret)
-				break;
-		}
-	}
-	up_read(&users_table_lock);
-	return ret;
-}
-
-static void __um_add_new_user(struct cifsd_user *user,
-			      char *name,
-			      char *pass,
-			      kuid_t uid,
-			      kgid_t gid)
-{
-	user->name = name;
-	user->passkey = pass;
-	user->uid.val = uid.val;
-	user->gid.val = gid.val;
-
-	atomic_set(&user->refcount, 1);
-
-	INIT_WORK(&user->free_work, deferred_user_free);
-	hash_add(users_table, &user->hlist, um_hash(name));
+	pr_err("IMPLEMENT ME\n");
+	return NULL;
 }
 
 int um_add_new_user(char *name, char *pass, kuid_t uid, kgid_t gid)
 {
-	struct cifsd_user *user;
-
-	/* GFP_KERNEL allocation, pre-allocate user out of users_table_lock */
-	user = kzalloc(sizeof(struct cifsd_user), GFP_KERNEL);
-	if (!user)
-		return -ENOMEM;
-
-	down_write(&users_table_lock);
-	if (__um_user_search(name)) {
-		up_write(&users_table_lock);
-		um_kill_user(user);
-		return -EEXIST;
-	}
-
-	__um_add_new_user(user, name, pass, uid, gid);
-	up_write(&users_table_lock);
+	pr_err("IMPLEMENT ME\n");
 	return 0;
 }
 
 int um_delete_user(char *name)
 {
-	struct cifsd_user *user;
-	int ret = -EINVAL;
-
-	down_write(&users_table_lock);
-	user = __um_user_search(name);
-	if (user && !(user->flags & UF_PENDING_REMOVAL)) {
-		user->flags |= UF_PENDING_REMOVAL;
-		put_cifsd_user(user);
-		ret = 0;
-	}
-	up_write(&users_table_lock);
-	return ret;
+	pr_err("IMPLEMENT ME\n");
+	return 0;
 }
 
 void um_cleanup_users(void)
 {
-	struct cifsd_user *user;
-	struct hlist_node *tmp;
-	int i;
-
-	down_write(&users_table_lock);
-	hash_for_each_safe(users_table, i, tmp, user, hlist) {
-		hash_del(&user->hlist);
-		kfree(user);
-	}
-	up_write(&users_table_lock);
+	pr_err("IMPLEMENT ME\n");
 }
 
 size_t um_users_show(char *buf, size_t sz)
 {
-	/* Not supported */
+	pr_err("IMPLEMENT ME\n");
 	return 0;
 }
