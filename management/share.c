@@ -110,10 +110,13 @@ static int parse_veto_list(struct cifsd_share_config *share,
 		struct cifsd_veto_pattern *p;
 
 		p = cifsd_alloc(sizeof(struct cifsd_veto_pattern));
-		if (p)
+		if (!p)
 			return -ENOMEM;
 
 		sz = strlen(veto_list);
+		if (!sz)
+			break;
+
 		p->pattern = kstrdup(veto_list, GFP_KERNEL);
 		if (!p->pattern) {
 			cifsd_free(p);
@@ -149,6 +152,9 @@ static struct cifsd_share_config *share_config_request(char *name)
 	INIT_LIST_HEAD(&share->veto_list);
 	share->name = kstrdup(name, GFP_KERNEL);
 	share->path = kstrdup(CIFSD_SHARE_CONFIG_PATH(resp), GFP_KERNEL);
+
+	pr_err(">> SET %s, %s\n", share->name, share->path);
+
 	ret = parse_veto_list(share,
 			      CIFSD_SHARE_CONFIG_VETO_LIST(resp),
 			      resp->veto_list_sz);
