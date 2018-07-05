@@ -515,6 +515,27 @@ struct cifsd_heartbeat *cifsd_ipc_heartbeat_request(void)
 	return in;
 }
 
+struct cifsd_share_config_response *
+cifsd_ipc_share_config_request(const char *name)
+{
+	struct cifsd_ipc_msg *msg;
+	struct cifsd_share_config_request *req;
+	struct cifsd_share_config_response *resp;
+
+	msg = ipc_msg_alloc(sizeof(struct cifsd_share_config_request));
+	if (!msg)
+		return NULL;
+
+	msg->type = CIFSD_EVENT_SHARE_CONFIG_REQUEST;
+	req = CIFSD_IPC_MSG_PAYLOAD(msg);
+	req->handle = next_ipc_msg_handle();
+	strncpy(req->share_name, name, sizeof(req->share_name) - 1);
+
+	resp = ipc_msg_send_request(msg, req->handle);
+	ipc_msg_free(msg);
+	return resp;
+}
+
 void cifsd_ipc_release(void)
 {
 	genl_unregister_family(&cifsd_genl_family);
