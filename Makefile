@@ -3,7 +3,8 @@ obj-$(CONFIG_CIFS_SERVER) += cifsd.o
 cifsd-y := 	export.o unicode.o encrypt.o auth.o \
 		fh.o vfs.o misc.o smb1pdu.o smb1ops.o oplock.o netmisc.o \
 		netlink.o cifsacl.o \
-		management/user.o\
+		management/user.o \
+		management/share.o \
 		buffer_pool.o \
 		transport_tcp.o \
 		transport_ipc.o \
