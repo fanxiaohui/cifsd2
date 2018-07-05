@@ -105,6 +105,14 @@ static const struct nla_policy cifsd_nl_policy[CIFSD_EVENT_MAX] = {
 		.len = sizeof(struct cifsd_login_response),
 	},
 
+	[CIFSD_EVENT_SHARE_CONFIG_REQUEST] = {
+		.len = sizeof(struct cifsd_share_config_request),
+	},
+
+	[CIFSD_EVENT_SHARE_CONFIG_RESPONSE] = {
+		.len = sizeof(struct cifsd_share_config_response),
+	},
+
 	[CIFSD_EVENT_TREE_CONNECT_REQUEST] = {
 		.len = sizeof(struct cifsd_tree_connect_request),
 	},
@@ -155,6 +163,16 @@ static const struct genl_ops cifsd_genl_ops[] = {
 	},
 	{
 		.cmd	= CIFSD_EVENT_LOGIN_RESPONSE,
+		.doit	= handle_generic_event,
+		.policy = cifsd_nl_policy,
+	},
+	{
+		.cmd	= CIFSD_EVENT_SHARE_CONFIG_REQUEST,
+		.doit	= handle_unsupported_event,
+		.policy = cifsd_nl_policy,
+	},
+	{
+		.cmd	= CIFSD_EVENT_SHARE_CONFIG_RESPONSE,
 		.doit	= handle_generic_event,
 		.policy = cifsd_nl_policy,
 	},
