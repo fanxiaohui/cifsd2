@@ -152,9 +152,6 @@ static struct cifsd_share_config *share_config_request(char *name)
 	INIT_LIST_HEAD(&share->veto_list);
 	share->name = kstrdup(name, GFP_KERNEL);
 	share->path = kstrdup(CIFSD_SHARE_CONFIG_PATH(resp), GFP_KERNEL);
-
-	pr_err(">> SET %s, %s\n", share->name, share->path);
-
 	ret = parse_veto_list(share,
 			      CIFSD_SHARE_CONFIG_VETO_LIST(resp),
 			      resp->veto_list_sz);
