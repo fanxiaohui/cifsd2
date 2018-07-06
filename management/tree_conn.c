@@ -60,29 +60,7 @@ int cifsd_tree_conn_connect(struct cifsd_sess *sess,
 	}
 
 	ret = resp->status;
-
-	if (ret == CIFSD_TREE_CONN_STATUS_NOMEM)
-		goto out_error;
-
-	if (ret == CIFSD_TREE_CONN_STATUS_NO_SHARE)
-		goto out_error;
-
-	if (ret == CIFSD_TREE_CONN_STATUS_TOO_MANY_CONNS)
-		goto out_error;
-
-	if (ret == CIFSD_TREE_CONN_STATUS_HOST_DENIED)
-		goto out_error;
-
-	if (ret == CIFSD_TREE_CONN_STATUS_NO_USER)
-		goto out_error;
-
-	if (ret == CIFSD_TREE_CONN_STATUS_INVALID_USER)
-		goto out_error;
-
-	if (ret == CIFSD_TREE_CONN_STATUS_CONN_EXIST)
-		goto out_error;
-
-	if (ret == CIFSD_TREE_CONN_STATUS_ERROR)
+	if (ret != CIFSD_TREE_CONN_STATUS_OK)
 		goto out_error;
 
 	tree_conn->flags = resp->connection_flags;
