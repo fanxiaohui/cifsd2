@@ -25,7 +25,7 @@
 #include "smb1pdu.h"
 #include "ntlmssp.h"
 
-#include "management/user.h"
+#include "mgmt/user.h"
 
 #ifdef CONFIG_CIFS_SMB2_SERVER
 #include "smb2pdu.h"
