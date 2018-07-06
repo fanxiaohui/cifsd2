@@ -93,7 +93,7 @@ int cifsd_tree_conn_connect(struct cifsd_sess *sess,
 	list_add(&tree_conn->list, &sess->tcon_list);
 
 	cifsd_free(resp);
-	return 0;
+	return ret;
 
 out_error:
 	if (sc)
