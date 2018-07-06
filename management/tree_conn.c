@@ -96,8 +96,8 @@ int cifsd_tree_conn_connect(struct cifsd_sess *sess,
 	return ret;
 
 out_error:
-	if (sc)
-		cifsd_share_config_put(sc);
+	cifsd_share_config_put(sc);
+	cifsd_free(tree_conn);
 	cifsd_free(resp);
 	return ret;
 }
