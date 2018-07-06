@@ -41,13 +41,13 @@ struct cifsd_share_config {
 	struct work_struct	free_work;
 };
 
-extern void __put_cifsd_share_config(struct cifsd_share_config *share);
+extern void __cifsd_share_config_put(struct cifsd_share_config *share);
 
-static inline void put_cifsd_share_config(struct cifsd_share_config *share)
+static inline void cifsd_share_config_put(struct cifsd_share_config *share)
 {
 	if (!atomic_dec_and_test(&share->refcount))
 		return;
-	__put_cifsd_share_config(share);
+	__cifsd_share_config_put(share);
 }
 
 struct cifsd_share_config *cifsd_share_config_get(char *name);

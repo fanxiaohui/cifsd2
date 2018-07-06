@@ -70,7 +70,7 @@ static void deferred_share_free(struct work_struct *work)
 	kill_share(share);
 }
 
-void __put_cifsd_share_config(struct cifsd_share_config *share)
+void __cifsd_share_config_put(struct cifsd_share_config *share)
 {
 	down_write(&shares_table_lock);
 	hash_del(&share->hlist);
