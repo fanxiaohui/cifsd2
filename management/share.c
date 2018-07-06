@@ -54,6 +54,8 @@ static void kill_share(struct cifsd_share_config *share)
 		kfree(p);
 	}
 
+	if (share->path)
+		path_put(&share->vfs_path);
 	kfree(share->name);
 	kfree(share->path);
 	kfree(share);
@@ -155,7 +157,15 @@ static struct cifsd_share_config *share_config_request(char *name)
 	ret = parse_veto_list(share,
 			      CIFSD_SHARE_CONFIG_VETO_LIST(resp),
 			      resp->veto_list_sz);
-	if (ret || !share->name || !share->path) {
+	if (!ret && share->path) {
+		ret = kern_path(share->path, 0, &share->vfs_path);
+		if (ret) {
+			/* Avoid put_path() */
+			kfree(share->path);
+			share->path = NULL;
+		}
+	}
+	if (ret || !share->name) {
 		kill_share(share);
 		share = NULL;
 		goto out;

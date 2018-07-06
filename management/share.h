@@ -21,6 +21,7 @@
 
 #include <linux/workqueue.h>
 #include <linux/hashtable.h>
+#include <linux/path.h>
 
 #include "../glob.h"  /* FIXME */
 
@@ -32,6 +33,8 @@ struct cifsd_share_config {
 
 	unsigned int		flags;
 	struct list_head	veto_list;
+
+	struct path		vfs_path;
 
 	atomic_t		refcount;
 	struct hlist_node	hlist;
