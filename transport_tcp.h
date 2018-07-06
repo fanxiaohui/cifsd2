@@ -80,7 +80,6 @@ struct cifsd_tcp_conn {
 	struct smb_version_ops		*ops;
 	struct smb_version_cmds		*cmds;
 	unsigned int			max_cmds;
-	char				*hostname;
 	struct mutex			srv_mutex;
 	int				tcp_status;
 	unsigned int			cli_cap;
