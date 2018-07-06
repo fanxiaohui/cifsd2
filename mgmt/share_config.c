@@ -22,7 +22,7 @@
 #include <linux/rwsem.h>
 #include <linux/parser.h>
 
-#include "share.h"
+#include "share_config.h"
 #include "../buffer_pool.h"
 #include "../transport_ipc.h"
 #include "../cifsd_server.h" /* FIXME */

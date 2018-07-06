@@ -16,7 +16,7 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
 
-#include "user.h"
+#include "user_config.h"
 #include "../buffer_pool.h"
 #include "../transport_ipc.h"
 #include "../cifsd_server.h" /* FIXME */

@@ -20,8 +20,8 @@
 #include <linux/slab.h>
 
 #include "tree_conn.h"
-#include "user.h"
-#include "share.h"
+#include "user_config.h"
+#include "share_config.h"
 #include "../buffer_pool.h"
 #include "../transport_ipc.h"
 #include "../transport_tcp.h"
