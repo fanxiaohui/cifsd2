@@ -29,9 +29,9 @@
 #include "../export.h" /* FIXME */
 #include "../cifsd_server.h" /* FIXME */
 
-int cifsd_tree_conn_connect(struct cifsd_sess *sess,
-			    char *share_name,
-			    int protocol)
+enum CIFSD_TREE_CONN_STATUS cifsd_tree_conn_connect(struct cifsd_sess *sess,
+						    char *share_name,
+						    int protocol)
 {
 	struct cifsd_tree_connect_response *resp = NULL;
 	struct cifsd_share_config *sc = NULL;

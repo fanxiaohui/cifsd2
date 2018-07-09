@@ -36,9 +36,9 @@ struct cifsd_tree_connect {
 
 struct cifsd_sess;
 
-int cifsd_tree_conn_connect(struct cifsd_sess *sess,
-			    char *share_name,
-			    int protocol);
+enum CIFSD_TREE_CONN_STATUS cifsd_tree_conn_connect(struct cifsd_sess *sess,
+						    char *share_name,
+						    int protocol);
 
 struct cifsd_tree_connect *cifsd_tree_conn_lookup(unsigned int id);
 
