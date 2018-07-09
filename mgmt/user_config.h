@@ -20,30 +20,37 @@
 #define __USER_MANAGEMENT_H__
 
 #include "../glob.h"  /* FIXME */
-
-#define UF_GUEST_ACCOUNT	(1 << 0)
-#define UF_PENDING_REMOVAL	(1 << 1)
+#include "../cifsd_server.h" /* FIXME */
 
 struct cifsd_user {
 	unsigned short		status;
+
+	unsigned int		uid;
+	unsigned int		gid;
 
 	char			*name;
 	
 	size_t			passkey_sz;
 	char			*passkey;
-
-	unsigned int		uid;
-	unsigned int		gid;
 };
 
 static inline bool user_guest(struct cifsd_user *user)
 {
-	return user->status & UF_GUEST_ACCOUNT;
+	return user->status & CIFSD_USER_STATUS_GUEST_ACCOUNT;
+}
+
+static inline void set_user_status(struct cifsd_user *user, int status)
+{
+	user->status |= status;
+}
+
+static inline int user_status(struct cifsd_user *user, int status)
+{
+	return user->status & status;
 }
 
 static inline void set_user_guest(struct cifsd_user *user)
 {
-	user->status |= UF_GUEST_ACCOUNT;
 }
 
 static inline char *user_passkey(struct cifsd_user *user)
@@ -66,10 +73,8 @@ static inline unsigned int user_gid(struct cifsd_user *user)
 	return user->gid;
 }
 
-
 struct cifsd_user *cifsd_alloc_user(const char *account);
 void cifsd_free_user(struct cifsd_user *user);
-
 
 /* TO BE REMOVED */
 
