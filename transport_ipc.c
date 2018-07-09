@@ -28,6 +28,9 @@
 #include "transport_ipc.h"
 #include "buffer_pool.h"
 
+#include "mgmt/user_config.h"
+#include "mgmt/share_config.h"
+
 #define IPC_WAIT_TIMEOUT	(2 * HZ)
 
 #define IPC_MSG_HASH_BITS	3
@@ -430,10 +433,10 @@ struct cifsd_login_response *cifsd_ipc_login_request(const char *account)
 }
 
 struct cifsd_tree_connect_response *
-cifsd_ipc_tree_connect_request(const int protocol,
-			       const char *account,
-			       const char *share,
-			       const struct sockaddr *peer_addr)
+cifsd_ipc_tree_connect_request(int protocol,
+			       struct cifsd_user *user,
+			       struct cifsd_share_config *share,
+			       struct sockaddr *peer_addr)
 {
 	struct cifsd_ipc_msg *msg;
 	struct cifsd_tree_connect_request *req;
@@ -448,8 +451,9 @@ cifsd_ipc_tree_connect_request(const int protocol,
 
 	req->handle = next_ipc_msg_handle();
 	req->flags = protocol;
-	strncpy(req->account, account, sizeof(req->account) - 1);
-	strncpy(req->share, share, sizeof(req->share) - 1);
+	req->status = user->status;
+	strncpy(req->account, user_name(user), sizeof(req->account) - 1);
+	strncpy(req->share, share->name, sizeof(req->share) - 1);
 	snprintf(req->peer_addr, sizeof(req->peer_addr), "%pIS", peer_addr);
 	if (peer_addr->sa_family == AF_INET6)
 		req->flags &= CIFSD_TREE_CONN_FLAG_REQUEST_IPV6;

@@ -25,7 +25,7 @@
 #define UF_PENDING_REMOVAL	(1 << 1)
 
 struct cifsd_user {
-	unsigned short		flags;
+	unsigned short		status;
 
 	char			*name;
 	
@@ -38,12 +38,12 @@ struct cifsd_user {
 
 static inline bool user_guest(struct cifsd_user *user)
 {
-	return user->flags & UF_GUEST_ACCOUNT;
+	return user->status & UF_GUEST_ACCOUNT;
 }
 
 static inline void set_user_guest(struct cifsd_user *user)
 {
-	user->flags |= UF_GUEST_ACCOUNT;
+	user->status |= UF_GUEST_ACCOUNT;
 }
 
 static inline char *user_passkey(struct cifsd_user *user)

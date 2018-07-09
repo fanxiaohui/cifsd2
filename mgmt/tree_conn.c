@@ -51,8 +51,8 @@ enum CIFSD_TREE_CONN_STATUS cifsd_tree_conn_connect(struct cifsd_sess *sess,
 
 	peer_addr = CIFSD_TCP_PEER_SOCKADDR(sess->conn);
 	resp = cifsd_ipc_tree_connect_request(protocol,
-					      sess->user->name,
-					      sc->name,
+					      sess->user,
+					      sc,
 					      peer_addr);
 	if (!resp) {
 		ret = -EINVAL;
