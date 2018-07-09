@@ -90,3 +90,17 @@ int cifsd_tree_conn_disconnect(struct cifsd_tree_connect *tree_conn)
 	cifsd_free(tree_conn);
 	return ret;
 }
+
+struct cifsd_tree_connect *cifsd_tree_conn_lookup(struct cifsd_sess *sess,
+						  unsigned int id)
+{
+	struct cifsd_tree_connect *tree_conn;
+	struct list_head *tmp;
+
+	list_for_each(tmp, &sess->tcon_list) {
+		tree_conn = list_entry(tmp, struct cifsd_tree_connect, list);
+		if (tree_conn->id == id)
+			return tree_conn;
+	}
+	return NULL;
+}
