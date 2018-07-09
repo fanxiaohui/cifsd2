@@ -1478,7 +1478,7 @@ int smb2_sess_setup(struct cifsd_work *work)
 
 			rsp->SessionFlags = SMB2_SESSION_FLAG_IS_GUEST;
 			sess->is_guest = true;
-			if (maptoguest) {
+			if (user_status(sess->user, CIFSD_USER_STATUS_ANONYMOUS)) {
 				rsp->SessionFlags = SMB2_SESSION_FLAG_IS_NULL;
 				sess->is_anonymous = true;
 				sess->is_guest	= false;
@@ -1487,6 +1487,8 @@ int smb2_sess_setup(struct cifsd_work *work)
 			rc = decode_ntlmssp_authenticate_blob(authblob,
 				le16_to_cpu(req->SecurityBufferLength), sess);
 			if (rc) {
+				set_user_status(sess->user,
+						CIFSD_USER_STATUS_BAD_PASSWORD);
 				cifsd_debug("authentication failed\n");
 				rc = -EINVAL;
 				rsp->hdr.Status = NT_STATUS_LOGON_FAILURE;
