@@ -117,6 +117,9 @@ struct cifsd_sess {
 	struct cifsd_pipe *pipe_desc[MAX_PIPE];
 	wait_queue_head_t pipe_q;
 	int ev_state;
+
+	// THE NEW STUFF //
+	struct list_head	tree_conn_list;
 };
 
 enum share_attrs {

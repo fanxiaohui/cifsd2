@@ -34,11 +34,16 @@ struct cifsd_tree_connect {
 	struct list_head		list;
 };
 
+struct cifsd_tree_conn_status {
+	unsigned int			ret;
+	unsigned int			id;
+};
+
 struct cifsd_sess;
 
-enum CIFSD_TREE_CONN_STATUS cifsd_tree_conn_connect(struct cifsd_sess *sess,
-						    char *share_name,
-						    int protocol);
+struct cifsd_tree_conn_status cifsd_tree_conn_connect(struct cifsd_sess *sess,
+						      char *share_name,
+						      int protocol);
 
 int cifsd_tree_conn_disconnect(struct cifsd_tree_connect *tree_conn);
 

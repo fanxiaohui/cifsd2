@@ -29,23 +29,23 @@
 #include "../export.h" /* FIXME */
 #include "../cifsd_server.h" /* FIXME */
 
-enum CIFSD_TREE_CONN_STATUS cifsd_tree_conn_connect(struct cifsd_sess *sess,
-						    char *share_name,
-						    int protocol)
+struct cifsd_tree_conn_status cifsd_tree_conn_connect(struct cifsd_sess *sess,
+						      char *share_name,
+						      int protocol)
 {
+	struct cifsd_tree_conn_status status = {-EINVAL, -1};
 	struct cifsd_tree_connect_response *resp = NULL;
 	struct cifsd_share_config *sc = NULL;
 	struct cifsd_tree_connect *tree_conn = NULL;
 	struct sockaddr *peer_addr;
-	int ret;
 
 	sc = cifsd_share_config_get(share_name);
 	if (!sc)
-		return -EINVAL;
+		return status;
 
 	tree_conn = cifsd_alloc(sizeof(struct cifsd_tree_connect));
 	if (!tree_conn) {
-		ret = -ENOMEM;
+		status.ret = -ENOMEM;
 		goto out_error;
 	}
 
@@ -55,12 +55,12 @@ enum CIFSD_TREE_CONN_STATUS cifsd_tree_conn_connect(struct cifsd_sess *sess,
 					      sc,
 					      peer_addr);
 	if (!resp) {
-		ret = -EINVAL;
+		status.ret = -EINVAL;
 		goto out_error;
 	}
 
-	ret = resp->status;
-	if (ret != CIFSD_TREE_CONN_STATUS_OK)
+	status.ret = resp->status;
+	if (status.ret != CIFSD_TREE_CONN_STATUS_OK)
 		goto out_error;
 
 	tree_conn->flags = resp->connection_flags;
@@ -68,16 +68,16 @@ enum CIFSD_TREE_CONN_STATUS cifsd_tree_conn_connect(struct cifsd_sess *sess,
 	tree_conn->user = sess->user;
 	tree_conn->share_conf = sc;
 
-	list_add(&tree_conn->list, &sess->tcon_list);
+	list_add(&tree_conn->list, &sess->tree_conn_list);
 
 	cifsd_free(resp);
-	return ret;
+	return status;
 
 out_error:
 	cifsd_share_config_put(sc);
 	cifsd_free(tree_conn);
 	cifsd_free(resp);
-	return ret;
+	return status;
 }
 
 int cifsd_tree_conn_disconnect(struct cifsd_tree_connect *tree_conn)
@@ -97,7 +97,7 @@ struct cifsd_tree_connect *cifsd_tree_conn_lookup(struct cifsd_sess *sess,
 	struct cifsd_tree_connect *tree_conn;
 	struct list_head *tmp;
 
-	list_for_each(tmp, &sess->tcon_list) {
+	list_for_each(tmp, &sess->tree_conn_list) {
 		tree_conn = list_entry(tmp, struct cifsd_tree_connect, list);
 		if (tree_conn->id == id)
 			return tree_conn;
