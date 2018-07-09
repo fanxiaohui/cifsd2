@@ -37,11 +37,11 @@
 static DEFINE_HASHTABLE(ipc_msg_table, IPC_MSG_HASH_BITS);
 
 static DECLARE_RWSEM(ipc_msg_table_lock);
-static unsigned long long ipc_msg_handle;
+static unsigned short ipc_msg_handle;
 
 static unsigned int cifsd_tools_pid;
 
-#define CIFSD_IPC_MSG_HANDLE(m)	(*(unsigned int *)m)
+#define CIFSD_IPC_MSG_HANDLE(m)	(*(unsigned short *)m)
 
 #define CIFSD_INVALID_IPC_VERSION(m)					\
 	({								\
@@ -230,7 +230,7 @@ static void ipc_msg_free(struct cifsd_ipc_msg *msg)
 
 static int handle_response(int type, void *payload, size_t sz)
 {
-	unsigned int handle = CIFSD_IPC_MSG_HANDLE(payload);
+	unsigned short handle = CIFSD_IPC_MSG_HANDLE(payload);
 	struct ipc_msg_table_entry *entry;
 	int ret = 0;
 
