@@ -1670,12 +1670,14 @@ out_err1:
 	case CIFSD_TREE_CONN_STATUS_NO_SHARE:
 		rsp->hdr.Status = NT_STATUS_BAD_NETWORK_PATH;
 		break;
+	case -ENOMEM:
 	case CIFSD_TREE_CONN_STATUS_NOMEM:
 		rsp->hdr.Status = NT_STATUS_NO_MEMORY;
 		break;
 	case CIFSD_TREE_CONN_STATUS_TOO_MANY_CONNS:
 		rsp->hdr.Status = NT_STATUS_ACCESS_DENIED;
 		break;
+	case -EINVAL:
 	case CIFSD_TREE_CONN_STATUS_ERROR:
 		if (IS_ERR(treename) || IS_ERR(name))
 			rsp->hdr.Status = NT_STATUS_BAD_NETWORK_NAME;
