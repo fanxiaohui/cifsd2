@@ -25,8 +25,6 @@
 
 #include "../glob.h"  /* FIXME */
 
-#define cifsd_share_config_FLAG_PIPE	(1 << 11)
-
 struct cifsd_share_config {
 	char			*name;
 	char			*path;
