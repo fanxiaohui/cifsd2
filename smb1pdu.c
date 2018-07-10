@@ -560,24 +560,6 @@ int smb_tree_connect_andx(struct cifsd_work *work)
 
 	cifsd_debug("tree connect request for tree %s, dev_type : %s\n",
 		name, dev_type);
-#if 0
-	share = get_cifsd_share(conn, sess, name, &can_write);
-	if (IS_ERR(share)) {
-		rc = PTR_ERR(share);
-		goto out_err;
-	}
-
-	max_conn = share->config.max_connections;
-	if (max_conn > 0 && max_conn < atomic_read(&share->num_conn) + 1) {
-		rc = -EACCES;
-		goto out_err;
-	}
-
-	tcon = construct_cifsd_tcon(share, sess);
-	if (IS_ERR(tcon)) {
-		rc = PTR_ERR(tcon);
-		goto out_err;
-	}
 
 	if (!strcmp(dev_type, "A:"))
 		dev_flags = 1;
@@ -592,17 +574,13 @@ int smb_tree_connect_andx(struct cifsd_work *work)
 
 	if (!strncmp("IPC$", name, 4)) {
 		if (dev_flags < 3) {
-			rc = -ENODEV;
+			status.ret = -ENODEV;
 			goto out_err;
 		}
-		tcon->share->is_pipe = true;
 	} else if (!dev_flags || (dev_flags > 1 && dev_flags < 5)) {
-		rc = -ENODEV;
+		status.ret = -ENODEV;
 		goto out_err;
 	}
-
-	atomic_inc(&share->num_conn);
-#endif
 
 	status = cifsd_tree_conn_connect(sess,
 					 name,
