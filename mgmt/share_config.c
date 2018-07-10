@@ -144,6 +144,10 @@ static struct cifsd_share_config *share_config_request(char *name)
 	resp = cifsd_ipc_share_config_request(name);
 	if (!resp)
 		return NULL;
+
+	if (resp->flags == CIFSD_SHARE_FLAG_INVALID)
+		goto out;
+
 	share = cifsd_alloc(sizeof(struct cifsd_share_config));
 	if (!share)
 		goto out;
