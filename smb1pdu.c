@@ -608,12 +608,12 @@ int smb_tree_connect_andx(struct cifsd_work *work)
 					 name,
 					 CIFSD_TREE_CONN_FLAG_REQUEST_SMB2);
 	if (status.ret == CIFSD_TREE_CONN_STATUS_OK) {
-		rsp_hdr->Tid = status.id;
+		rsp_hdr->Tid = status.tree_conn->id;
 	} else {
 		goto out_err;
 	}
 
-	share = cifsd_tree_conn_share(sess, status.id);
+	share = status.tree_conn->share_conf;
 	rsp->WordCount = 7;
 	rsp->OptionalSupport = 0;
 
@@ -689,7 +689,7 @@ out_err1:
 	}
 
 	/* Clean session if there is no tree attached */
-	if (!sess || !sess->tcon_count)
+	if (!sess || list_empty(&sess->tree_conn_list))
 		cifsd_tcp_set_exiting(work);
 	inc_rfc1001_len(rsp_hdr, (7 * 2 + rsp->ByteCount + extra_byte));
 	return status.ret;

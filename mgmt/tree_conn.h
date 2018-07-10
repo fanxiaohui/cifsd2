@@ -40,7 +40,7 @@ struct cifsd_tree_connect {
 
 struct cifsd_tree_conn_status {
 	unsigned int			ret;
-	unsigned int			id;
+	struct cifsd_tree_connect	*tree_conn;
 };
 
 static inline int test_tree_conn_flag(struct cifsd_tree_connect *tree_conn,

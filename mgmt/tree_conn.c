@@ -33,7 +33,7 @@ struct cifsd_tree_conn_status cifsd_tree_conn_connect(struct cifsd_sess *sess,
 						      char *share_name,
 						      int protocol)
 {
-	struct cifsd_tree_conn_status status = {-EINVAL, -1};
+	struct cifsd_tree_conn_status status = {-EINVAL, NULL};
 	struct cifsd_tree_connect_response *resp = NULL;
 	struct cifsd_share_config *sc = NULL;
 	struct cifsd_tree_connect *tree_conn = NULL;
@@ -67,7 +67,7 @@ struct cifsd_tree_conn_status cifsd_tree_conn_connect(struct cifsd_sess *sess,
 	tree_conn->id = resp->connection_id;
 	tree_conn->user = sess->user;
 	tree_conn->share_conf = sc;
-	status.id = tree_conn->id;
+	status.tree_conn = tree_conn;
 
 	list_add(&tree_conn->list, &sess->tree_conn_list);
 

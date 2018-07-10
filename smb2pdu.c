@@ -1593,7 +1593,6 @@ int smb2_tree_connect(struct cifsd_work *work)
 	char *treename = NULL, *name = NULL;
 	struct cifsd_tree_conn_status status;
 	struct cifsd_share_config *share;
-	struct cifsd_tree_connect *tcon;
 
 	req = (struct smb2_tree_connect_req *)REQUEST_BUF(work);
 	rsp = (struct smb2_tree_connect_rsp *)RESPONSE_BUF(work);
@@ -1626,12 +1625,10 @@ int smb2_tree_connect(struct cifsd_work *work)
 					 name,
 					 CIFSD_TREE_CONN_FLAG_REQUEST_SMB2);
 	if (status.ret == CIFSD_TREE_CONN_STATUS_OK) {
-		rsp->hdr.Id.SyncId.TreeId = status.id;
+		rsp->hdr.Id.SyncId.TreeId = status.tree_conn->id;
 	}
 
-	tcon = cifsd_tree_conn_lookup(sess, status.id);
-	share = tcon->share_conf;
-
+	share = status.tree_conn->share_conf;
 	if (test_share_config_flag(share, CIFSD_SHARE_FLAG_PIPE)) {
 		cifsd_debug("IPC share path request\n");
 		rsp->ShareType = SMB2_SHARE_TYPE_PIPE;
@@ -1651,7 +1648,7 @@ int smb2_tree_connect(struct cifsd_work *work)
 			FILE_SYNCHRONIZE_LE;
 	}
 
-	tcon->maximal_access = le32_to_cpu(rsp->MaximalAccess);
+	status.tree_conn->maximal_access = le32_to_cpu(rsp->MaximalAccess);
 
 	kfree(treename);
 	kfree(name);
