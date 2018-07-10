@@ -38,7 +38,7 @@ LIST_HEAD(cifsd_share_list);
 LIST_HEAD(cifsd_session_list);
 
 __u16 tid = 1;
-int cifsd_debug_enable;
+int cifsd_debug_enable = 1;
 int cifsd_caseless_search;
 static inline void free_share(struct cifsd_share *share);
 

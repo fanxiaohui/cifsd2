@@ -383,12 +383,12 @@ int smb_get_cifsd_tcon(struct cifsd_work *work)
 {
 	struct smb_hdr *req_hdr = (struct smb_hdr *)REQUEST_BUF(work);
 
-	work->tcon = NULL;
-	if (!work->sess->tcon_count) {
+	if (list_empty(&work->sess->tree_conn_list)) {
 		cifsd_debug("NO tree connected\n");
 		return 0;
 	}
 
+	work->tcon = NULL;
 	if (work->conn->ops->get_cmd_val(work) == SMB_COM_TREE_CONNECT_ANDX) {
 		cifsd_debug("skip to check tree connect request\n");
 		return 0;
