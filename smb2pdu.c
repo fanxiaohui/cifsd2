@@ -159,11 +159,6 @@ int smb2_get_cifsd_tcon(struct cifsd_work *work)
 		return 0;
 	}
 
-	if (!work->sess->tcon_count) {
-		cifsd_debug("NO tree connected\n");
-		return -1;
-	}
-
 	work->tcon = cifsd_tree_conn_lookup(work->sess, le32_to_cpu(req_hdr->Id.SyncId.TreeId));
 	if (!work->tcon) {
 		cifsd_err("Invalid tid %d\n", req_hdr->Id.SyncId.TreeId);
@@ -1595,6 +1590,8 @@ int smb2_tree_connect(struct cifsd_work *work)
 	struct cifsd_sess *sess = work->sess;
 	char *treename = NULL, *name = NULL;
 	struct cifsd_tree_conn_status status;
+	struct cifsd_share_config *share;
+	struct cifsd_tree_connect *tcon;
 
 	req = (struct smb2_tree_connect_req *)REQUEST_BUF(work);
 	rsp = (struct smb2_tree_connect_rsp *)RESPONSE_BUF(work);
@@ -1630,32 +1627,11 @@ int smb2_tree_connect(struct cifsd_work *work)
 		rsp->hdr.Id.SyncId.TreeId = status.id;
 	}
 
-#if 0
-	share = get_cifsd_share(conn, sess, name, &can_write);
-	if (IS_ERR(share)) {
-		rc = PTR_ERR(share);
-		goto out_err;
-	}
+	tcon = cifsd_tree_conn_lookup(sess, status.id);
+	share = tcon->share_conf;
 
-	max_conn = share->config.max_connections;
-	if (max_conn > 0 && max_conn < atomic_read(&share->num_conn) + 1) {
-		rc = -EACCES;
-		goto out_err;
-	}
-
-	tcon = construct_cifsd_tcon(share, sess);
-	if (IS_ERR(tcon)) {
-		rc = PTR_ERR(tcon);
-		goto out_err;
-	}
-
-	tcon->writeable = can_write;
-	rsp->hdr.Id.SyncId.TreeId = tcon->share->tid;
-
-	if (!strncmp("IPC$", name, 4)) {
-		tcon->share->is_pipe = true;
+	if (test_share_config_flag(share, CIFSD_SHARE_FLAG_PIPE)) {
 		cifsd_debug("IPC share path request\n");
-		share->type = SMB2_SHARE_TYPE_PIPE;
 		rsp->ShareType = SMB2_SHARE_TYPE_PIPE;
 		rsp->MaximalAccess = FILE_READ_DATA_LE | FILE_READ_EA_LE |
 			FILE_EXECUTE_LE | FILE_READ_ATTRIBUTES_LE |
@@ -1663,7 +1639,6 @@ int smb2_tree_connect(struct cifsd_work *work)
 			FILE_WRITE_DAC_LE | FILE_WRITE_OWNER_LE |
 			FILE_SYNCHRONIZE_LE;
 	} else {
-		share->type = SMB2_SHARE_TYPE_DISK;
 		rsp->ShareType = SMB2_SHARE_TYPE_DISK;
 		rsp->MaximalAccess = FILE_READ_DATA_LE | FILE_READ_EA_LE |
 			FILE_WRITE_DATA_LE | FILE_APPEND_DATA_LE |
@@ -1675,8 +1650,6 @@ int smb2_tree_connect(struct cifsd_work *work)
 	}
 
 	tcon->maximal_access = le32_to_cpu(rsp->MaximalAccess);
-	atomic_inc(&share->num_conn);
-#endif
 
 out_err:
 	kfree(treename);
