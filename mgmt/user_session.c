@@ -150,35 +150,21 @@ struct cifsd_session *cifsd_smb2_session_create(void)
 	return __session_create(CIFDS_SESSION_FLAG_SMB2);
 }
 
-struct cifsd_tree_connect *
-cifsd_session_tree_conn_alloc(struct cifsd_session *sess)
+int cifsd_acquire_tree_conn_id(struct cifsd_session *sess)
 {
-	struct cifsd_tree_connect *tc;
-
-	tc = cifsd_alloc(sizeof(struct cifsd_tree_connect));
-	if (!tc)
-		return NULL;
+	int id = -EINVAL;
 
 	if (test_session_flag(sess, CIFDS_SESSION_FLAG_SMB1))
-		tc->id = cifds_acquire_next_smb1_id(sess->tree_conn_ida);
+		id = cifds_acquire_next_smb1_id(sess->tree_conn_ida);
 	if (test_session_flag(sess, CIFDS_SESSION_FLAG_SMB2))
-		tc->id = cifds_acquire_next_smb2_id(sess->tree_conn_ida);
+		id = cifds_acquire_next_smb2_id(sess->tree_conn_ida);
 
-	if (tc->id < 0) {
-		cifsd_free(tc);
-		return NULL;
-	}
-
-	list_add(&tc->list, &sess->tree_conn_list);
-	return tc;
+	return id;
 }
 
-void cifsd_session_tree_conn_free(struct cifsd_session *sess,
-				  struct cifsd_tree_connect *tc)
+void cifsd_release_tree_conn_id(struct cifsd_session *sess, int id)
 {
-	cifds_release_id(sess->tree_conn_ida, tc->id);
-	list_del(&tc->list);
-	cifsd_free(tc);
+	cifds_release_id(sess->tree_conn_ida, id);
 }
 
 int cifsd_init_session_table(void)
