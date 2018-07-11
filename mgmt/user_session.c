@@ -53,8 +53,7 @@ static void __kill_smb1_session(struct cifsd_session *sess)
 
 static void __kill_smb2_session(struct cifsd_session *sess)
 {
-//	FIX
-//	destroy_fidtable(sess);
+	destroy_fidtable(sess);
 }
 
 void cifsd_session_destroy(struct cifsd_session *sess)
