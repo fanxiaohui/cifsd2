@@ -305,22 +305,6 @@ static int queue_cifsd_work(struct cifsd_tcp_conn *conn)
 	return 0;
 }
 
-static void free_channel_list(struct cifsd_session *sess)
-{
-	struct channel *chann;
-	struct list_head *tmp, *t;
-
-	if (sess->conn->dialect >= SMB30_PROT_ID) {
-		list_for_each_safe(tmp, t, &sess->cifsd_chann_list) {
-			chann = list_entry(tmp, struct channel, chann_list);
-			if (chann) {
-				list_del(&chann->chann_list);
-				kfree(chann);
-			}
-		}
-	}
-}
-
 static size_t cifsd_server_get_header_size(void)
 {
 	size_t sz = sizeof(struct smb_hdr);
