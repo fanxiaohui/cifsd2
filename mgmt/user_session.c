@@ -98,17 +98,21 @@ struct cifsd_session *cifsd_session_lookup(unsigned long long id)
 
 static int __init_smb1_session(struct cifsd_session *sess)
 {
-	sess->id = cifds_acquire_next_smb1_id(session_ida);
-	if (sess->id < 0)
-		return sess->id;
+	int id = cifds_acquire_next_smb1_id(session_ida);
+
+	if (id == 0)
+		return -EINVAL;
+	sess->id = id;
 	return 0;
 }
 
 static int __init_smb2_session(struct cifsd_session *sess)
 {
-	sess->id = cifds_acquire_next_smb2_id(session_ida);
-	if (sess->id < 0)
-		return sess->id;
+	int id = cifds_acquire_next_smb2_id(session_ida);
+
+	if (sess->id == 0)
+		return -EINVAL;
+	sess->id = id;
 	return init_fidtable(&sess->fidtable);
 }
 
