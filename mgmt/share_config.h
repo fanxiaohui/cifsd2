@@ -16,8 +16,8 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
 
-#ifndef __SHARE_MANAGEMENT_H__
-#define __SHARE_MANAGEMENT_H__
+#ifndef __SHARE_CONFIG_MANAGEMENT_H__
+#define __SHARE_CONFIG_MANAGEMENT_H__
 
 #include <linux/workqueue.h>
 #include <linux/hashtable.h>
@@ -59,4 +59,4 @@ bool cifsd_share_veto_filename(struct cifsd_share_config *share,
 			       const char *filename);
 void cifsd_share_configs_cleanup(void);
 
-#endif /* __SHARE_MANAGEMENT_H__ */
+#endif /* __SHARE_CONFIG_MANAGEMENT_H__ */

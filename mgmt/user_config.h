@@ -16,8 +16,8 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  */
 
-#ifndef __USER_MANAGEMENT_H__
-#define __USER_MANAGEMENT_H__
+#ifndef __USER_CONFIG_MANAGEMENT_H__
+#define __USER_CONFIG_MANAGEMENT_H__
 
 #include "../glob.h"  /* FIXME */
 #include "../cifsd_server.h" /* FIXME */
@@ -88,4 +88,4 @@ int um_delete_user(char *name);
 void um_cleanup_users(void);
 size_t um_users_show(char *buf, size_t sz);
 
-#endif /* __USER_MANAGEMENT_H__ */
+#endif /* __USER_CONFIG_MANAGEMENT_H__ */
