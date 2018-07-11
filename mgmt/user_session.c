@@ -32,6 +32,20 @@ static struct cifsd_ida *session_ida;
 static DEFINE_HASHTABLE(sessions_table, SESSION_HASH_BITS);
 static DECLARE_RWSEM(sessions_table_lock);
 
+static void free_channel_list(struct cifsd_session *sess)
+{
+	struct channel *chann;
+	struct list_head *tmp, *t;
+
+	list_for_each_safe(tmp, t, &sess->cifsd_chann_list) {
+		chann = list_entry(tmp, struct channel, chann_list);
+		if (chann) {
+			list_del(&chann->chann_list);
+			kfree(chann);
+		}
+	}
+}
+
 static void __kill_smb1_session(struct cifsd_session *sess)
 {
 
@@ -45,8 +59,7 @@ static void __kill_smb2_session(struct cifsd_session *sess)
 
 void cifsd_session_destroy(struct cifsd_session *sess)
 {
-//	FIX
-//	free_channel_list(sess);
+	free_channel_list(sess);
 	kfree(sess->Preauth_HashValue);
 	cifds_release_id(session_ida, sess->id);
 
