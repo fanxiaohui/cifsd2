@@ -463,7 +463,8 @@ cifsd_ipc_tree_connect_request(int protocol,
 	return resp;
 }
 
-int cifsd_ipc_tree_disconnect_request(unsigned long long connection_id)
+int cifsd_ipc_tree_disconnect_request(unsigned long long session_id,
+				      unsigned long long connect_id)
 {
 	struct cifsd_ipc_msg *msg;
 	struct cifsd_tree_disconnect_request *req;
@@ -475,7 +476,8 @@ int cifsd_ipc_tree_disconnect_request(unsigned long long connection_id)
 
 	msg->type = CIFSD_EVENT_TREE_DISCONNECT_REQUEST;
 	req = CIFSD_IPC_MSG_PAYLOAD(msg);
-	req->connection_id = connection_id;
+	req->session_id = session_id;
+	req->connect_id = connect_id;
 
 	ret = ipc_msg_send(msg);
 	ipc_msg_free(msg);

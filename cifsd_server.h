@@ -73,8 +73,8 @@ struct cifsd_tree_connect_request {
 	__u32	handle;
 	__u16	account_flags;
 	__u16	flags;
-	__u32	session_id;
-	__u32	connection_id;
+	__u64	session_id;
+	__u64	connect_id;
 	__s8	account[64];
 	__s8	share[64];
 	__s8	peer_addr[64];
@@ -87,8 +87,8 @@ struct cifsd_tree_connect_response {
 } __align;
 
 struct cifsd_tree_disconnect_request {
-	__u32	session_id;
-	__u32	connection_id;
+	__u64	session_id;
+	__u64	connect_id;
 } __align;
 
 struct cifsd_logout_request {

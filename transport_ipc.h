@@ -35,7 +35,8 @@ cifsd_ipc_tree_connect_request(int protocol,
 			       struct cifsd_share_config *share,
 			       struct sockaddr *peer_addr);
 
-int cifsd_ipc_tree_disconnect_request(unsigned long long connect_id);
+int cifsd_ipc_tree_disconnect_request(unsigned long long session_id,
+				      unsigned long long connect_id);
 int cifsd_ipc_logout_request(const char *account);
 struct cifsd_heartbeat *cifsd_ipc_heartbeat_request(void);
 

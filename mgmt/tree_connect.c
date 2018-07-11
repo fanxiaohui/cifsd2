@@ -93,7 +93,7 @@ int cifsd_tree_conn_disconnect(struct cifsd_session *sess,
 {
 	int ret;
 
-	ret = cifsd_ipc_tree_disconnect_request(tree_conn->id);
+	ret = cifsd_ipc_tree_disconnect_request(sess->id, tree_conn->id);
 	cifsd_release_tree_conn_id(sess, tree_conn->id);
 	list_del(&tree_conn->list);
 	cifsd_share_config_put(tree_conn->share_conf);
