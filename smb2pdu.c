@@ -1763,7 +1763,7 @@ int smb2_tree_disconnect(struct cifsd_work *work)
 	}
 
 	close_opens_from_fibtable(sess, tcon);
-	cifsd_tree_conn_disconnect(tcon);
+	cifsd_tree_conn_disconnect(sess, tcon);
 	return 0;
 }
 
