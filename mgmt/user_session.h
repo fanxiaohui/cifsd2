@@ -1,0 +1,90 @@
+/*
+ *   Copyright (C) 2018 Samsung Electronics Co., Ltd.
+ *
+ *   This program is free software; you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation; either version 2 of the License, or
+ *   (at your option) any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with this program; if not, write to the Free Software
+ *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
+ */
+
+#ifndef __USER_SESSION_MANAGEMENT_H__
+#define __USER_SESSION_MANAGEMENT_H__
+
+#include <linux/hashtable.h>
+
+#include "cifds_ida.h"
+
+#include "../glob.h"  /* FIXME */
+
+#define CIFDS_SESSION_FLAG_SMB1		(1 << 0)
+#define CIFDS_SESSION_FLAG_SMB2		(1 << 1)
+
+struct cifsd_session {
+	uint64_t			id;
+
+	struct cifsd_user		*user;
+	struct cifsd_tcp_conn		*conn;
+	unsigned int			sequence_number;
+	unsigned int			flags;
+
+	int 				valid;
+	bool				sign;
+	bool				enc;
+	bool				is_anonymous;
+	bool				is_guest;
+
+	int 				state;
+	__u8				*Preauth_HashValue;
+	struct cifsd_pipe		*pipe_desc[MAX_PIPE];
+	wait_queue_head_t		pipe_q;
+	int				ev_state;
+
+	struct ntlmssp_auth		ntlmssp;
+	char				sess_key[CIFS_KEY_SIZE];
+
+	struct hlist_node		hlist;
+	struct list_head		cifsd_chann_list;
+	struct list_head		tree_conn_list;
+	struct cifsd_ida		*tree_conn_ida;
+
+	/* should be under CONFIG_CIFS_SMB2_SERVER */
+	struct fidtable_desc		fidtable;
+	__u8				smb3encryptionkey[SMB3_SIGN_KEY_SIZE];
+	__u8				smb3decryptionkey[SMB3_SIGN_KEY_SIZE];
+};
+
+static inline int test_session_flag(struct cifsd_session *sess, int bit)
+{
+	return sess->flags & bit;
+}
+
+static inline void set_session_flag(struct cifsd_session *sess, int bit)
+{
+	sess->flags |= bit;
+}
+
+static inline void clear_session_flag(struct cifsd_session *sess, int bit)
+{
+	sess->flags &= ~bit;
+}
+
+struct cifsd_session *cifsd_smb1_session_create(void);
+struct cifsd_session *cifsd_smb2_session_create(void);
+
+void cifsd_session_destroy(struct cifsd_session *sess);
+
+struct cifsd_session *cifsd_session_lookup(unsigned long long id);
+
+int cifsd_init_session_table(void);
+void cifsd_free_session_table(void);
+
+#endif /* __USER_SESSION_MANAGEMENT_H__ */
