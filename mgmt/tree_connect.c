@@ -51,7 +51,7 @@ struct cifsd_tree_conn_status cifsd_tree_conn_connect(struct cifsd_session *sess
 	}
 
 	tree_conn->id = cifsd_acquire_tree_conn_id(sess);
-	if (tree_conn->id < 0) {
+	if (tree_conn->id == 0) {
 		cifsd_free(tree_conn);
 		status.ret = -EINVAL;
 		goto out_error;
@@ -92,7 +92,7 @@ int cifsd_tree_conn_disconnect(struct cifsd_session *sess,
 			       struct cifsd_tree_connect *tree_conn)
 {
 	int ret;
-	
+
 	ret = cifsd_ipc_tree_disconnect_request(tree_conn->id);
 	cifsd_release_tree_conn_id(sess, tree_conn->id);
 	list_del(&tree_conn->list);
