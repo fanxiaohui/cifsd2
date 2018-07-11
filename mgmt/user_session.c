@@ -58,7 +58,7 @@ void cifsd_session_destroy(struct cifsd_session *sess)
 	else if (test_session_flag(sess, CIFDS_SESSION_FLAG_SMB2))
 		__kill_smb2_session(sess);
 	cifsd_ida_free(sess->tree_conn_ida);
-	kfree(sess);
+	cifsd_free(sess);
 }
 
 static struct cifsd_session *__session_lookup(unsigned long long id)
@@ -104,7 +104,7 @@ static struct cifsd_session *__session_create(int protocol)
 	struct cifsd_session *sess;
 	int ret;
 	
-	sess = kzalloc(sizeof(struct cifsd_session), GFP_KERNEL);
+	sess = cifsd_alloc(sizeof(struct cifsd_session));
 	if (sess == NULL)
 		return NULL;
 
