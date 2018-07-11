@@ -84,6 +84,13 @@ void cifsd_session_destroy(struct cifsd_session *sess);
 
 struct cifsd_session *cifsd_session_lookup(unsigned long long id);
 
+struct cifsd_tree_connect;
+
+struct cifsd_tree_connect *
+cifsd_session_tree_conn_alloc(struct cifsd_session *sess);
+void cifsd_session_tree_conn_free(struct cifsd_session *sess,
+				  struct cifsd_tree_connect *tc);
+
 int cifsd_init_session_table(void);
 void cifsd_free_session_table(void);
 
