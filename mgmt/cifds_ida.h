@@ -46,12 +46,20 @@ static void cifsd_ida_free(struct cifsd_ida *ida)
 
 static int cifds_acquire_next_smb1_id(struct cifsd_ida *ida)
 {
-	return ida_simple_get(&ida->map, 1, 0xFFFF, GFP_KERNEL);
+	int id = ida_simple_get(&ida->map, 1, 0xFFFF, GFP_KERNEL);
+
+	if (id < 0)
+		return 0;
+	return id;
 }
 
 static int cifds_acquire_next_smb2_id(struct cifsd_ida *ida)
 {
-	return ida_simple_get(&ida->map, 0xFFFF + 1, 0, GFP_KERNEL);
+	int id = ida_simple_get(&ida->map, 0xFFFF + 1, 0, GFP_KERNEL);
+
+	if (id < 0)
+		return 0;
+	return id;
 }
 
 static void cifds_release_id(struct cifsd_ida *ida, int id)
