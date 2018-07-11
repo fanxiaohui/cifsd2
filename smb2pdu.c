@@ -38,7 +38,7 @@
 
 #include "mgmt/user_config.h"
 #include "mgmt/share_config.h"
-#include "mgmt/tree_conn.h"
+#include "mgmt/tree_connect.h"
 
 bool multi_channel_enable;
 bool encryption_enable;

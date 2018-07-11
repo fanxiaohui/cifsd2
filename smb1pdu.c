@@ -32,7 +32,7 @@
 
 #include "mgmt/user_config.h"
 #include "mgmt/share_config.h"
-#include "mgmt/tree_conn.h"
+#include "mgmt/tree_connect.h"
 
 /*for shortname implementation */
 static const char basechars[43] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_-!@#$%";

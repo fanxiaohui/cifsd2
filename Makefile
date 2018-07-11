@@ -5,7 +5,7 @@ cifsd-y := 	export.o unicode.o encrypt.o auth.o \
 		netlink.o cifsacl.o \
 		mgmt/user_config.o \
 		mgmt/share_config.o \
-		mgmt/tree_conn.o \
+		mgmt/tree_connect.o \
 		buffer_pool.o \
 		transport_tcp.o \
 		transport_ipc.o \

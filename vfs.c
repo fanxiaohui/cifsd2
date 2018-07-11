@@ -39,7 +39,7 @@
 #include "fh.h"
 
 #include "mgmt/share_config.h"
-#include "mgmt/tree_conn.h"
+#include "mgmt/tree_connect.h"
 
 /**
  * cifsd_vfs_create() - vfs helper for smb create file
