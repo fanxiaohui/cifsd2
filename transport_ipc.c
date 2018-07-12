@@ -30,6 +30,8 @@
 
 #include "mgmt/user_config.h"
 #include "mgmt/share_config.h"
+#include "mgmt/user_session.h"
+#include "mgmt/tree_connect.h"
 
 #define IPC_WAIT_TIMEOUT	(2 * HZ)
 
@@ -433,9 +435,9 @@ struct cifsd_login_response *cifsd_ipc_login_request(const char *account)
 }
 
 struct cifsd_tree_connect_response *
-cifsd_ipc_tree_connect_request(int protocol,
-			       struct cifsd_user *user,
+cifsd_ipc_tree_connect_request(struct cifsd_session *sess,
 			       struct cifsd_share_config *share,
+			       struct cifsd_tree_connect *tree_conn,
 			       struct sockaddr *peer_addr)
 {
 	struct cifsd_ipc_msg *msg;
@@ -450,13 +452,17 @@ cifsd_ipc_tree_connect_request(int protocol,
 	req = CIFSD_IPC_MSG_PAYLOAD(msg);
 
 	req->handle = next_ipc_msg_handle();
-	req->flags = protocol;
-	req->account_flags = user->flags;
-	strncpy(req->account, user_name(user), sizeof(req->account) - 1);
+	req->account_flags = sess->user->flags;
+	req->session_id = sess->id;
+	req->connect_id = tree_conn->id;
+	strncpy(req->account, user_name(sess->user), sizeof(req->account) - 1);
 	strncpy(req->share, share->name, sizeof(req->share) - 1);
 	snprintf(req->peer_addr, sizeof(req->peer_addr), "%pIS", peer_addr);
+
 	if (peer_addr->sa_family == AF_INET6)
-		req->flags &= CIFSD_TREE_CONN_FLAG_REQUEST_IPV6;
+		req->flags |= CIFSD_TREE_CONN_FLAG_REQUEST_IPV6;
+	if (test_session_flag(sess, CIFDS_SESSION_FLAG_SMB2))
+		req->flags |= CIFSD_TREE_CONN_FLAG_REQUEST_SMB2;
 
 	resp = ipc_msg_send_request(msg, req->handle);
 	ipc_msg_free(msg);

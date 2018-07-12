@@ -26,13 +26,14 @@
 struct cifsd_login_response *
 cifsd_ipc_login_request(const char *account);
 
-struct cifsd_user;
+struct cifsd_session;
 struct cifsd_share_config;
+struct cifsd_tree_connect;
 
 struct cifsd_tree_connect_response *
-cifsd_ipc_tree_connect_request(int protocol,
-			       struct cifsd_user *user,
+cifsd_ipc_tree_connect_request(struct cifsd_session *sess,
 			       struct cifsd_share_config *share,
+			       struct cifsd_tree_connect *tree_conn,
 			       struct sockaddr *peer_addr);
 
 int cifsd_ipc_tree_disconnect_request(unsigned long long session_id,

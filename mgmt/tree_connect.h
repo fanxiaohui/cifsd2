@@ -52,8 +52,7 @@ static inline int test_tree_conn_flag(struct cifsd_tree_connect *tree_conn,
 struct cifsd_session;
 
 struct cifsd_tree_conn_status cifsd_tree_conn_connect(struct cifsd_session *sess,
-						      char *share_name,
-						      int protocol);
+						      char *share_name);
 
 int cifsd_tree_conn_disconnect(struct cifsd_session *sess,
 			       struct cifsd_tree_connect *tree_conn);

@@ -31,8 +31,7 @@
 #include "user_session.h"
 
 struct cifsd_tree_conn_status cifsd_tree_conn_connect(struct cifsd_session *sess,
-						      char *share_name,
-						      int protocol)
+						      char *share_name)
 {
 	struct cifsd_tree_conn_status status = {-EINVAL, NULL};
 	struct cifsd_tree_connect_response *resp = NULL;
@@ -58,9 +57,9 @@ struct cifsd_tree_conn_status cifsd_tree_conn_connect(struct cifsd_session *sess
 	}
 
 	peer_addr = CIFSD_TCP_PEER_SOCKADDR(sess->conn);
-	resp = cifsd_ipc_tree_connect_request(protocol,
-					      sess->user,
+	resp = cifsd_ipc_tree_connect_request(sess,
 					      sc,
+					      tree_conn,
 					      peer_addr);
 	if (!resp) {
 		status.ret = -EINVAL;

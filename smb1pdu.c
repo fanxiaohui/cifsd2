@@ -578,9 +578,7 @@ int smb_tree_connect_andx(struct cifsd_work *work)
 		goto out_err;
 	}
 
-	status = cifsd_tree_conn_connect(sess,
-					 name,
-					 CIFSD_TREE_CONN_FLAG_REQUEST_SMB2);
+	status = cifsd_tree_conn_connect(sess, name);
 	if (status.ret == CIFSD_TREE_CONN_STATUS_OK) {
 		rsp_hdr->Tid = status.tree_conn->id;
 	} else {

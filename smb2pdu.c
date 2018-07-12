@@ -1604,9 +1604,7 @@ int smb2_tree_connect(struct cifsd_work *work)
 	cifsd_debug("tree connect request for tree %s treename %s\n",
 		      name, treename);
 
-	status = cifsd_tree_conn_connect(sess,
-					 name,
-					 CIFSD_TREE_CONN_FLAG_REQUEST_SMB2);
+	status = cifsd_tree_conn_connect(sess, name);
 	if (status.ret == CIFSD_TREE_CONN_STATUS_OK) {
 		rsp->hdr.Id.SyncId.TreeId = status.tree_conn->id;
 	}
