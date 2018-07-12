@@ -110,7 +110,7 @@ static int __init_smb2_session(struct cifsd_session *sess)
 {
 	int id = cifds_acquire_next_smb2_id(session_ida);
 
-	if (sess->id == 0)
+	if (id == 0)
 		return -EINVAL;
 	sess->id = id;
 	return init_fidtable(&sess->fidtable);
