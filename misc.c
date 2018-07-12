@@ -333,16 +333,12 @@ struct cifsd_session *lookup_session_on_server(struct cifsd_tcp_conn *conn,
 		uint64_t sess_id)
 {
 	struct cifsd_session *sess;
-	struct list_head *tmp, *t;
 
-	list_for_each_safe(tmp, t, &conn->cifsd_sess) {
-		sess = list_entry(tmp, struct cifsd_session, cifsd_ses_list);
-		if (sess->id == sess_id)
-			return sess;
-	}
-
-	cifsd_err("User session(ID : %llu) not found\n", sess_id);
-	return NULL;
+	pr_info("Remove me\n");
+	sess = cifsd_session_lookup(sess_id);
+	if (!sess)
+		cifsd_err("User session(ID : %llu) not found\n", sess_id);
+	return sess;
 }
 
 /**
