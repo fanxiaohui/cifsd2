@@ -342,6 +342,8 @@ int smb_check_user_session(struct cifsd_work *work)
 	int rc;
 	unsigned int cmd = conn->ops->get_cmd_val(work);
 
+	pr_err("Fix me\n");
+
 	work->sess = NULL;
 
 	if (cmd == SMB_COM_NEGOTIATE || cmd == SMB_COM_SESSION_SETUP_ANDX)
