@@ -339,8 +339,6 @@ int smb_check_user_session(struct cifsd_work *work)
 {
 	struct smb_hdr *req_hdr = (struct smb_hdr *)REQUEST_BUF(work);
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_session *sess;
-	struct list_head *tmp;
 	int rc;
 	unsigned int cmd = conn->ops->get_cmd_val(work);
 
@@ -358,16 +356,9 @@ int smb_check_user_session(struct cifsd_work *work)
 	}
 
 	rc = -EINVAL;
-	list_for_each(tmp, &conn->cifsd_sess) {
-		sess = list_entry(tmp, struct cifsd_session, cifsd_ses_list);
-		if (sess->id == req_hdr->Uid &&
-				sess->valid) {
-			work->sess = sess;
-			rc = 1;
-			break;
-		}
-	}
-
+	work->sess = cifsd_session_lookup(req_hdr->Uid);
+	if (work->sess && work->sess->valid)
+		return 1;
 	if (!work->sess)
 		cifsd_debug("Invalid user session, Uid %u\n", req_hdr->Uid);
 	return rc;
@@ -421,7 +412,7 @@ int smb_session_disconnect(struct cifsd_work *work)
 	/* setting CifsExiting here may race with start_tcp_sess */
 	cifsd_tcp_set_need_reconnect(work);
 
-	put_cifsd_user(sess->user);
+	cifsd_free_user(sess->user);
 	sess->user = NULL;
 
 	cifsd_tcp_conn_wait_idle(conn);
@@ -1026,8 +1017,10 @@ static int build_sess_rsp_noextsec(struct cifsd_session *sess,
 		goto out_err;
 	}
 
+	WARN_ON(sess->user);
+
 	cifsd_debug("session setup request for user %s\n", name);
-	sess->user = cifsd_is_user_present(name);
+	sess->user = cifsd_alloc_user(name);
 	kfree(name);
 	if (!sess->user) {
 		cifsd_err("user not present in database\n");
@@ -1231,10 +1224,11 @@ static int build_sess_rsp_extsec(struct cifsd_session *sess,
 		}
 
 		cifsd_debug("session setup request for user %s\n", username);
-		sess->user = cifsd_is_user_present(username);
+
+		sess->user = cifsd_alloc_user(username);
 		if (!sess->user) {
 			cifsd_debug("user (%s) is not present in database or guest account is not set\n",
-					username);
+				username);
 			kfree(username);
 			err = -EINVAL;
 			goto out_err;
