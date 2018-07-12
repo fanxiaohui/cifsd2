@@ -373,6 +373,10 @@ static int __init cifsd_server_init(void)
 	if (rc)
 		return rc;
 
+	rc = cifsd_init_session_table();
+	if (rc)
+		goto err1;
+
 	rc = cifsd_export_init();
 	if (rc)
 		goto err1;
@@ -419,6 +423,8 @@ static void __exit cifsd_server_exit(void)
 	cifsd_net_exit();
 
 	cifsd_tcp_destroy();
+	cifsd_free_session_table();
+
 #ifdef CONFIG_CIFS_SMB2_SERVER
 	destroy_global_fidtable();
 #endif
