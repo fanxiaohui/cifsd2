@@ -39,6 +39,8 @@ struct cifsd_user *cifsd_alloc_user(const char *account)
 
 	user->name = kstrdup(account, GFP_KERNEL);
 	user->flags = resp->status;
+	user->gid = resp->gid;
+	user->uid = resp->uid;
 	user->passkey_sz = resp->hash_sz;
 	user->passkey = cifsd_alloc(resp->hash_sz);
 	if (user->passkey)
