@@ -572,11 +572,10 @@ int smb_tree_connect_andx(struct cifsd_work *work)
 	}
 
 	status = cifsd_tree_conn_connect(sess, name);
-	if (status.ret == CIFSD_TREE_CONN_STATUS_OK) {
+	if (status.ret == CIFSD_TREE_CONN_STATUS_OK)
 		rsp_hdr->Tid = status.tree_conn->id;
-	} else {
+	else
 		goto out_err;
-	}
 
 	share = status.tree_conn->share_conf;
 	rsp->WordCount = 7;

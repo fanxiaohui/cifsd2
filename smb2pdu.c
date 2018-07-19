@@ -1605,9 +1605,10 @@ int smb2_tree_connect(struct cifsd_work *work)
 		      name, treename);
 
 	status = cifsd_tree_conn_connect(sess, name);
-	if (status.ret == CIFSD_TREE_CONN_STATUS_OK) {
+	if (status.ret == CIFSD_TREE_CONN_STATUS_OK)
 		rsp->hdr.Id.SyncId.TreeId = status.tree_conn->id;
-	}
+	else
+		goto out_err1;
 
 	share = status.tree_conn->share_conf;
 	if (test_share_config_flag(share, CIFSD_SHARE_FLAG_PIPE)) {
