@@ -30,7 +30,7 @@ struct cifsd_user *cifsd_alloc_user(const char *account)
 	if (!resp)
 		return NULL;
 
-	if (resp->status & CIFSD_USER_FLAG_INVALID)
+	if (!(resp->status & CIFSD_USER_FLAG_OK))
 		goto out;
 
 	user = cifsd_alloc(sizeof(struct cifsd_user));
