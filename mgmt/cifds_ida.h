@@ -48,7 +48,7 @@ static void cifsd_ida_free(struct cifsd_ida *ida)
 
 static int cifds_acquire_next_smb1_id(struct cifsd_ida *ida)
 {
-	return ida_simple_get(&ida->map, ida->start, 0xFFFF, GFP_KERNEL);
+	return ida_simple_get(&ida->map, ida->start, 0xFFFE, GFP_KERNEL);
 }
 
 static int cifds_acquire_next_smb2_id(struct cifsd_ida *ida)
