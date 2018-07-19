@@ -100,7 +100,7 @@ static int __init_smb1_session(struct cifsd_session *sess)
 {
 	int id = cifds_acquire_next_smb1_id(session_ida);
 
-	if (id == 0)
+	if (id < 0)
 		return -EINVAL;
 	sess->id = id;
 	return 0;
@@ -110,7 +110,7 @@ static int __init_smb2_session(struct cifsd_session *sess)
 {
 	int id = cifds_acquire_next_smb2_id(session_ida);
 
-	if (id == 0)
+	if (id < 0)
 		return -EINVAL;
 	sess->id = id;
 	return init_fidtable(&sess->fidtable);
@@ -142,7 +142,7 @@ static struct cifsd_session *__session_create(int protocol)
 		break;
 	}
 
-	sess->tree_conn_ida = cifsd_ida_alloc();
+	sess->tree_conn_ida = cifsd_ida_alloc(0);
 	if (!sess->tree_conn_ida)
 		ret = -ENOMEM;
 
@@ -186,7 +186,7 @@ void cifsd_release_tree_conn_id(struct cifsd_session *sess, int id)
 
 int cifsd_init_session_table(void)
 {
-	session_ida = cifsd_ida_alloc();
+	session_ida = cifsd_ida_alloc(1);
 	if (!session_ida)
 		return -ENOMEM;
 	return 0;
