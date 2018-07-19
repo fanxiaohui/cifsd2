@@ -37,7 +37,7 @@ struct cifsd_user *cifsd_alloc_user(const char *account)
 	if (!user)
 		goto out;
 
-	user->name = kstrdup(account, GFP_KERNEL);
+	user->name = kstrdup(resp->account, GFP_KERNEL);
 	user->flags = resp->status;
 	user->gid = resp->gid;
 	user->uid = resp->uid;
