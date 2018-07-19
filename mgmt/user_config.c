@@ -24,7 +24,7 @@
 struct cifsd_user *cifsd_alloc_user(const char *account)
 {
 	struct cifsd_login_response *resp;
-	struct cifsd_user *user;
+	struct cifsd_user *user = NULL;
 
 	resp = cifsd_ipc_login_request(account);
 	if (!resp)
