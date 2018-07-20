@@ -293,7 +293,7 @@ static int cifsd_tcp_new_connection(struct socket *client_sk)
 	if (conn == NULL)
 		return -ENOMEM;
 
-	csin = (struct sockaddr *)&(conn->peer_saddr);
+	csin = (struct sockaddr *)&(conn->peer_addr);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
 	int cslen;

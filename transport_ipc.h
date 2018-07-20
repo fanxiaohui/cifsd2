@@ -28,8 +28,8 @@ cifsd_ipc_login_request(const char *account);
 
 struct cifsd_tree_connect_response *
 cifsd_ipc_tree_connect_request(const int protocol,
-			       const char *share,
 			       const char *account,
+			       const char *share,
 			       const struct sockaddr *peer_addr);
 
 int cifsd_ipc_tree_disconnect_request(unsigned long long connect_id);

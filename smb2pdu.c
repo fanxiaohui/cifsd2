@@ -6674,7 +6674,7 @@ int smb2_ioctl(struct cifsd_work *work)
 
 			memset(sockaddr_storage, 0, 128);
 
-			if (conn->peer_saddr.ss_family == PF_INET) {
+			if (conn->peer_addr.ss_family == PF_INET) {
 				struct in_device *idev;
 
 				sockaddr_storage->Family =
