@@ -69,8 +69,9 @@ struct cifsd_ipc_msg {
 struct ipc_msg_table_entry {
 	unsigned int		handle;
 	unsigned int		type;
-	struct hlist_node	hlist;
 	wait_queue_head_t	wait;
+	struct hlist_node	ipc_table_hlist;
+	struct list_head	sess_ipc_list;
 
 	void			*response;
 };
@@ -237,7 +238,7 @@ static int handle_response(int type, void *payload, size_t sz)
 	int ret = 0;
 
 	down_read(&ipc_msg_table_lock);
-	hash_for_each_possible(ipc_msg_table, entry, hlist, handle) {
+	hash_for_each_possible(ipc_msg_table, entry, ipc_table_hlist, handle) {
 		if (handle != entry->handle)
 			continue;
 
@@ -396,7 +397,7 @@ static void *ipc_msg_send_request(struct cifsd_ipc_msg *msg,
 
 	down_write(&ipc_msg_table_lock);
 	entry.handle = handle;
-	hash_add(ipc_msg_table, &entry.hlist, entry.handle);
+	hash_add(ipc_msg_table, &entry.ipc_table_hlist, entry.handle);
 	up_write(&ipc_msg_table_lock);
 
 	ret = ipc_msg_send(msg);
@@ -408,7 +409,7 @@ static void *ipc_msg_send_request(struct cifsd_ipc_msg *msg,
 					       IPC_WAIT_TIMEOUT);
 out:
 	down_write(&ipc_msg_table_lock);
-	hash_del(&entry.hlist);
+	hash_del(&entry.ipc_table_hlist);
 	up_write(&ipc_msg_table_lock);
 
 	return entry.response;
@@ -546,6 +547,50 @@ cifsd_ipc_share_config_request(const char *name)
 	resp = ipc_msg_send_request(msg, req->handle);
 	ipc_msg_free(msg);
 	return resp;
+}
+
+int cifsd_ipc_session_rpc_alloc(struct cifsd_session *sess)
+{
+	struct ipc_msg_table_entry *entry;
+	int ret;
+
+	entry = cifsd_alloc(sizeof(struct ipc_msg_table_entry));
+	if (!entry)
+		return -ENOMEM;
+
+	entry->handle = next_ipc_msg_handle();
+	entry->response = NULL;
+	init_waitqueue_head(&entry->wait);
+
+	down_write(&ipc_msg_table_lock);
+	hash_add(ipc_msg_table, &entry->ipc_table_hlist, entry->handle);
+	list_add(&entry->sess_ipc_list, &sess->ipc_handle_list);
+	up_write(&ipc_msg_table_lock);
+
+	return entry->handle;
+}
+
+void cifsd_ipc_session_rpc_free(struct cifsd_session *sess, int id)
+{
+
+}
+
+void cifsd_ipc_session_rpc_list_clear(struct cifsd_session *sess)
+{
+	struct ipc_msg_table_entry *entry;
+
+	down_write(&ipc_msg_table_lock);
+	while (!list_empty(&sess->ipc_handle_list)) {
+		entry = list_entry(sess->ipc_handle_list.next,
+				   struct ipc_msg_table_entry,
+				   sess_ipc_list);
+
+		list_del(&entry->sess_ipc_list);
+		hash_del(&entry->ipc_table_hlist);
+		cifsd_free(entry->response);
+		cifsd_free(entry);
+	}
+	up_write(&ipc_msg_table_lock);
 }
 
 void cifsd_ipc_release(void)

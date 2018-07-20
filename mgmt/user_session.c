@@ -23,6 +23,7 @@
 #include "cifds_ida.h"
 #include "user_session.h"
 #include "tree_connect.h"
+#include "../transport_ipc.h"
 #include "../buffer_pool.h"
 #include "../cifsd_server.h" /* FIXME */
 
@@ -58,6 +59,7 @@ static void __kill_smb2_session(struct cifsd_session *sess)
 
 void cifsd_session_destroy(struct cifsd_session *sess)
 {
+	cifsd_ipc_session_rpc_list_clear(sess);
 	free_channel_list(sess);
 	kfree(sess->Preauth_HashValue);
 	cifds_release_id(session_ida, sess->id);
@@ -128,6 +130,7 @@ static struct cifsd_session *__session_create(int protocol)
 	set_session_flag(sess, protocol);
 	INIT_LIST_HEAD(&sess->tree_conn_list);
 	INIT_LIST_HEAD(&sess->cifsd_chann_list);
+	INIT_LIST_HEAD(&sess->ipc_handle_list);
 	sess->sequence_number = 1;
 	sess->valid = 1;
 	init_waitqueue_head(&sess->pipe_q);
