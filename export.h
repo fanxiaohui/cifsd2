@@ -90,65 +90,6 @@ enum {
 	MANDATORY
 };
 
-/* cifsd_session coupled with cifsd_user */
-struct cifsd_session {
-	struct cifsd_user *user;
-	struct cifsd_tcp_conn *conn;
-	struct list_head cifsd_ses_list;
-	struct list_head cifsd_ses_global_list;
-	int tcon_count;
-	int valid;
-	unsigned int sequence_number;
-	uint64_t sess_id;
-	struct ntlmssp_auth ntlmssp;
-	char sess_key[CIFS_KEY_SIZE];
-	__u8 smb3encryptionkey[SMB3_SIGN_KEY_SIZE];
-	__u8 smb3decryptionkey[SMB3_SIGN_KEY_SIZE];
-	__u8 smb3signingkey[SMB3_SIGN_KEY_SIZE];
-	bool sign;
-	bool enc;
-	struct list_head cifsd_chann_list;
-	bool is_anonymous;
-	bool is_guest;
-	struct fidtable_desc fidtable;
-	int state;
-	__u8 *Preauth_HashValue;
-	struct cifsd_pipe *pipe_desc[MAX_PIPE];
-	wait_queue_head_t pipe_q;
-	int ev_state;
-
-	struct list_head	tree_conn_list;
-};
-
-/* cifsd_session coupled with cifsd_user */
-struct cifsd_session {
-	struct cifsd_user *user;
-	struct cifsd_tcp_conn *conn;
-	struct list_head cifsd_ses_list;
-	struct list_head cifsd_ses_global_list;
-	int tcon_count;
-	int valid;
-	unsigned int sequence_number;
-	uint64_t sess_id;
-	struct ntlmssp_auth ntlmssp;
-	char sess_key[CIFS_KEY_SIZE];
-	__u8 smb3encryptionkey[SMB3_SIGN_KEY_SIZE];
-	__u8 smb3decryptionkey[SMB3_SIGN_KEY_SIZE];
-	bool sign;
-	bool enc;
-	struct list_head cifsd_chann_list;
-	bool is_anonymous;
-	bool is_guest;
-	struct fidtable_desc fidtable;
-	int state;
-	__u8 *Preauth_HashValue;
-	struct cifsd_pipe *pipe_desc[MAX_PIPE];
-	wait_queue_head_t pipe_q;
-	int ev_state;
-
-	struct list_head	tree_conn_list;
-};
-
 enum share_attrs {
 	SH_AVAILABLE = 0,
 	SH_BROWSABLE,

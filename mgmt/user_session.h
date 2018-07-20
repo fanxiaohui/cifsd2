@@ -26,7 +26,21 @@
 #define CIFDS_SESSION_FLAG_SMB1		(1 << 0)
 #define CIFDS_SESSION_FLAG_SMB2		(1 << 1)
 
+#define PREAUTH_HASHVALUE_SIZE		64
+
 struct cifsd_ida;
+
+struct channel {
+	__u8			smb3signingkey[SMB3_SIGN_KEY_SIZE];
+	struct cifsd_tcp_conn	*conn;
+	struct list_head	chann_list;
+};
+
+struct preauth_session {
+	__u8			Preauth_HashValue[PREAUTH_HASHVALUE_SIZE];
+	uint64_t		sess_id;
+	struct list_head	list_entry;
+};
 
 struct cifsd_session {
 	uint64_t			id;
@@ -60,7 +74,7 @@ struct cifsd_session {
 	struct fidtable_desc		fidtable;
 	__u8				smb3encryptionkey[SMB3_SIGN_KEY_SIZE];
 	__u8				smb3decryptionkey[SMB3_SIGN_KEY_SIZE];
-
+	__u8				smb3signingkey[SMB3_SIGN_KEY_SIZE];
 
 	/* REMOVE */
 	struct list_head		cifsd_ses_list;
