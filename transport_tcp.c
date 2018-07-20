@@ -285,34 +285,36 @@ static int cifsd_tcp_conn_handler_loop(void *p)
  */
 static int cifsd_tcp_new_connection(struct socket *client_sk)
 {
-	struct sockaddr_storage caddr;
-	struct sockaddr *csin = (struct sockaddr *)&caddr;
+	struct sockaddr *csin;
 	int rc = 0;
 	struct cifsd_tcp_conn *conn;
+
+	conn = cifsd_tcp_conn_alloc(client_sk);
+	if (conn == NULL)
+		return -ENOMEM;
+
+	csin = (struct sockaddr *)&(conn->peer_saddr);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
 	int cslen;
 
 	if (kernel_getpeername(client_sk, csin, &cslen) < 0) {
 		cifsd_err("client ip resolution failed\n");
-		return -EINVAL;
+		rc = -EINVAL;
+		goto out_error;
 	}
 #else
 	if (kernel_getpeername(client_sk, csin) < 0) {
 		cifsd_err("client ip resolution failed\n");
-		return -EINVAL;
+		rc = -EINVAL;
+		goto out_error;
 	}
 #endif
-
-	conn = cifsd_tcp_conn_alloc(client_sk);
-	if (conn == NULL)
-		return -ENOMEM;
 
 	conn->conn_ops = &default_tcp_conn_ops;
 	if (conn->conn_ops->init_fn)
 		conn->conn_ops->init_fn(conn);
 
-	conn->family = csin->sa_family;
 	snprintf(conn->peeraddr, sizeof(conn->peeraddr), "%pIS", csin);
 
 	conn->handler = kthread_run(cifsd_tcp_conn_handler_loop,
@@ -323,6 +325,10 @@ static int cifsd_tcp_new_connection(struct socket *client_sk)
 		rc = PTR_ERR(conn->handler);
 		cifsd_tcp_conn_free(conn);
 	}
+	return rc;
+
+out_error:
+	cifsd_tcp_conn_free(conn);
 	return rc;
 }
 

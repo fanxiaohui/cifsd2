@@ -74,7 +74,6 @@ struct cifsd_tcp_conn_ops {
 
 struct cifsd_tcp_conn {
 	struct socket			*sock;
-	unsigned short			family;
 	/* The number of sessions attached with this connection */
 	int				sess_count;
 	struct smb_version_values	*vals;
@@ -146,7 +145,7 @@ struct cifsd_tcp_conn {
 	/* Preauth Session Table */
 	struct list_head		preauth_sess_table;
 
-	struct sockaddr_storage		perr_sock_addr;
+	struct sockaddr_storage		peer_saddr;
 };
 
 void cifsd_tcp_conn_lock(struct cifsd_tcp_conn *conn);
