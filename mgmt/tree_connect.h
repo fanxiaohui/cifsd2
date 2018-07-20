@@ -27,7 +27,7 @@ struct cifsd_share_config;
 struct cifsd_user;
 
 struct cifsd_tree_connect {
-	unsigned int			id;
+	int				id;
 
 	unsigned int			flags;
 	struct cifsd_share_config	*share_conf;

@@ -50,7 +50,7 @@ struct cifsd_tree_conn_status cifsd_tree_conn_connect(struct cifsd_session *sess
 	}
 
 	tree_conn->id = cifsd_acquire_tree_conn_id(sess);
-	if (tree_conn->id == 0) {
+	if (tree_conn->id < 0) {
 		cifsd_free(tree_conn);
 		status.ret = -EINVAL;
 		goto out_error;
