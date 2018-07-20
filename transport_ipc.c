@@ -552,7 +552,6 @@ cifsd_ipc_share_config_request(const char *name)
 int cifsd_ipc_session_rpc_alloc(struct cifsd_session *sess)
 {
 	struct ipc_msg_table_entry *entry;
-	int ret;
 
 	entry = cifsd_alloc(sizeof(struct ipc_msg_table_entry));
 	if (!entry)
@@ -570,9 +569,22 @@ int cifsd_ipc_session_rpc_alloc(struct cifsd_session *sess)
 	return entry->handle;
 }
 
-void cifsd_ipc_session_rpc_free(struct cifsd_session *sess, int id)
+void cifsd_ipc_session_rpc_free(struct cifsd_session *sess, int handle)
 {
+	struct ipc_msg_table_entry *entry;
 
+	down_write(&ipc_msg_table_lock);
+	list_for_each_entry(entry, &sess->ipc_handle_list, sess_ipc_list) {
+		if (entry->handle != handle)
+			continue;
+
+		list_del(&entry->sess_ipc_list);
+		hash_del(&entry->ipc_table_hlist);
+		cifsd_free(entry->response);
+		cifsd_free(entry);
+		break;
+	}
+	up_write(&ipc_msg_table_lock);
 }
 
 void cifsd_ipc_session_rpc_list_clear(struct cifsd_session *sess)
