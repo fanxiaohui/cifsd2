@@ -428,11 +428,7 @@ int smb_session_disconnect(struct cifsd_work *work)
 
 	cifsd_tree_conn_session_logoff(sess);
 
-	/* free all sessions, we have just 1 */
-	list_del(&sess->cifsd_ses_list);
-	list_del(&sess->cifsd_ses_global_list);
-	destroy_fidtable(sess);
-	kfree(sess);
+	cifsd_session_destroy(sess);
 	work->sess = NULL;
 
 	conn->sess_count--;
@@ -1335,27 +1331,14 @@ int smb_session_setup_andx(struct cifsd_work *work)
 		cifsd_debug("reuse session(%p) session ID : %llu, Uid : %u\n",
 			sess, sess->id, uid);
 	} else {
-		sess = kzalloc(sizeof(struct cifsd_session), GFP_KERNEL);
+		sess = cifsd_smb1_session_create();
 		if (sess == NULL) {
 			rc = -ENOMEM;
 			goto out_err;
 		}
+
 		sess->conn = conn;
-		INIT_LIST_HEAD(&sess->cifsd_ses_list);
-		INIT_LIST_HEAD(&sess->cifsd_chann_list);
-		list_add(&sess->cifsd_ses_list, &conn->cifsd_sess);
-		list_add(&sess->cifsd_ses_global_list, &cifsd_session_list);
-		INIT_LIST_HEAD(&sess->tree_conn_list);
-		init_waitqueue_head(&sess->pipe_q);
-		sess->ev_state = NETLINK_REQ_INIT;
-
-		uid = alloc_smb1_vuid();
-		if (!uid) {
-			cifsd_err("get_vuid failed : %d\n", uid);
-			goto out_err;
-		}
-
-		rsp->resp.hdr.Uid = sess->id = uid;
+		rsp->resp.hdr.Uid = sess->id;
 		cifsd_debug("generate session(%p) ID : %llu, Uid : %u\n",
 				sess, sess->id, uid);
 	}
@@ -1383,12 +1366,7 @@ int smb_session_setup_andx(struct cifsd_work *work)
 
 out_err:
 	if (rc < 0 && sess) {
-		sess->valid = 0;
-		list_del(&sess->cifsd_ses_list);
-		list_del(&sess->cifsd_ses_global_list);
-		if (uid > 0)
-			free_smb1_vuid(uid);
-		kfree(sess);
+		cifsd_session_destroy(sess);
 		work->sess = NULL;
 	}
 	rsp->resp.hdr.Status.CifsError = NT_STATUS_LOGON_FAILURE;

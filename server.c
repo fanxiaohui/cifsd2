@@ -321,23 +321,6 @@ static void free_channel_list(struct cifsd_session *sess)
 	}
 }
 
-void smb_delete_session(struct cifsd_session *sess)
-{
-	cifsd_debug("delete session ID: %llu, session count: %d\n",
-			sess->id, sess->conn->sess_count);
-
-	sess->valid = 0;
-	list_del(&sess->cifsd_ses_list);
-	list_del(&sess->cifsd_ses_global_list);
-	free_channel_list(sess);
-	destroy_fidtable(sess);
-	sess->conn->sess_count--;
-	kfree(sess->Preauth_HashValue);
-	if (!IS_SMB2(sess->conn))
-		free_smb1_vuid(sess->id);
-	kfree(sess);
-}
-
 static size_t cifsd_server_get_header_size(void)
 {
 	size_t sz = sizeof(struct smb_hdr);
@@ -367,7 +350,7 @@ static int cifsd_server_terminate_conn(struct cifsd_tcp_conn *conn)
 			sess = list_entry(tmp,
 					  struct cifsd_session,
 					  cifsd_ses_list);
-			smb_delete_session(sess);
+			cifsd_session_destroy(sess);
 		}
 	}
 

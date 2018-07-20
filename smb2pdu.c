@@ -681,7 +681,7 @@ void smb2_invalidate_prev_session(uint64_t sess_id)
 		sess = list_entry(tmp, struct cifsd_session,
 				cifsd_ses_global_list);
 		if (sess->id == sess_id) {
-			smb_delete_session(sess);
+			cifsd_session_destroy(sess);
 			break;
 		}
 	}
@@ -1197,30 +1197,13 @@ int smb2_sess_setup(struct cifsd_work *work)
 			smb2_invalidate_prev_session(
 				le64_to_cpu(req->PreviousSessionId));
 
-		sess = kzalloc(sizeof(struct cifsd_session), GFP_KERNEL);
+		sess = cifsd_smb2_session_create();
 		if (sess == NULL) {
 			rc = -ENOMEM;
 			goto out_err;
 		}
-
-		get_random_bytes(&sess->id, sizeof(__u64));
-		cifsd_debug("generate session ID : %llu\n", sess->id);
 		rsp->hdr.SessionId = cpu_to_le64(sess->id);
 		sess->conn = conn;
-		INIT_LIST_HEAD(&sess->cifsd_ses_list);
-		INIT_LIST_HEAD(&sess->cifsd_chann_list);
-		list_add(&sess->cifsd_ses_list, &conn->cifsd_sess);
-		list_add(&sess->cifsd_ses_global_list, &cifsd_session_list);
-
-		INIT_LIST_HEAD(&sess->tree_conn_list);
-		sess->valid = 1;
-		conn->sess_count++;
-		rc = init_fidtable(&sess->fidtable);
-		if (rc < 0)
-			goto out_err;
-
-		init_waitqueue_head(&sess->pipe_q);
-		sess->ev_state = NETLINK_REQ_INIT;
 	} else {
 		if (multi_channel_enable &&
 			req->hdr.Flags & SMB2_SESSION_REQ_FLAG_BINDING) {
@@ -1571,7 +1554,7 @@ out_err:
 	}
 
 	if (rc < 0 && sess) {
-		smb_delete_session(sess);
+		cifsd_session_destroy(sess);
 		work->sess = NULL;
 	}
 
