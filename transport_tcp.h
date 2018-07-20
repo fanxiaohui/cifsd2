@@ -145,6 +145,8 @@ struct cifsd_tcp_conn {
 
 	/* Preauth Session Table */
 	struct list_head		preauth_sess_table;
+
+	struct sockaddr_storage		perr_sock_addr;
 };
 
 void cifsd_tcp_conn_lock(struct cifsd_tcp_conn *conn);
