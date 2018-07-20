@@ -38,6 +38,9 @@
 #include "vfs.h"
 #include "fh.h"
 
+#include "mgmt/share_config.h"
+#include "mgmt/tree_conn.h"
+
 /**
  * cifsd_vfs_create() - vfs helper for smb create file
  * @name:	file name
@@ -1556,7 +1559,7 @@ static void fill_create_time(struct cifsd_work *work,
 	time = cifs_UnixTimeToNT(from_kern_timespec(cifsd_kstat->kstat->ctime));
 	cifsd_kstat->create_time = time;
 
-	if (get_attr_store_dos(&work->tcon->share->config.attr)) {
+	if (test_share_config_flag(work->tcon->share_conf, CIFSD_SHARE_FLAG_STORE_DOS_ATTRS)) {
 		xattr_len = cifsd_vfs_getxattr(path->dentry,
 					       XATTR_NAME_CREATION_TIME,
 					       &create_time);
@@ -1620,7 +1623,7 @@ static void fill_file_attributes(struct cifsd_work *work,
 	else
 		cifsd_kstat->file_attributes = ATTR_ARCHIVE;
 
-	if (get_attr_store_dos(&work->tcon->share->config.attr)) {
+	if (test_share_config_flag(work->tcon->share_conf, CIFSD_SHARE_FLAG_STORE_DOS_ATTRS)) {
 		char *file_attribute = NULL;
 		int rc;
 

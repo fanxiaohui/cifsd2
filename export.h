@@ -96,7 +96,6 @@ struct cifsd_sess {
 	struct cifsd_tcp_conn *conn;
 	struct list_head cifsd_ses_list;
 	struct list_head cifsd_ses_global_list;
-	struct list_head tcon_list;
 	int tcon_count;
 	int valid;
 	unsigned int sequence_number;
@@ -118,7 +117,6 @@ struct cifsd_sess {
 	wait_queue_head_t pipe_q;
 	int ev_state;
 
-	// THE NEW STUFF //
 	struct list_head	tree_conn_list;
 };
 
@@ -245,8 +243,6 @@ int generate_smb311encryptionkey(struct cifsd_sess *sess);
 extern struct cifsd_user *cifsd_is_user_present(char *name);
 struct cifsd_share *get_cifsd_share(struct cifsd_tcp_conn *conn,
 		struct cifsd_sess *sess, char *sharename, bool *can_write);
-extern struct cifsd_tcon *construct_cifsd_tcon(struct cifsd_share *share,
-		struct cifsd_sess *sess);
 extern struct cifsd_tcon *get_cifsd_tcon(struct cifsd_sess *sess,
 			unsigned int tid);
 struct cifsd_user *get_smb_session_user(struct cifsd_sess *sess);

@@ -23,7 +23,7 @@
 #include "../cifsd_server.h" /* FIXME */
 
 struct cifsd_user {
-	unsigned short		status;
+	unsigned short		flags;
 
 	unsigned int		uid;
 	unsigned int		gid;
@@ -36,17 +36,17 @@ struct cifsd_user {
 
 static inline bool user_guest(struct cifsd_user *user)
 {
-	return user->status & CIFSD_USER_STATUS_GUEST_ACCOUNT;
+	return user->flags & CIFSD_USER_FLAG_GUEST_ACCOUNT;
 }
 
-static inline void set_user_status(struct cifsd_user *user, int status)
+static inline void set_user_flag(struct cifsd_user *user, int flag)
 {
-	user->status |= status;
+	user->flags |= flag;
 }
 
-static inline int user_status(struct cifsd_user *user, int status)
+static inline int test_user_flag(struct cifsd_user *user, int flag)
 {
-	return user->status & status;
+	return user->flags & flag;
 }
 
 static inline void set_user_guest(struct cifsd_user *user)

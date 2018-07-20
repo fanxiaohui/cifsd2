@@ -277,7 +277,7 @@ int init_fidtable(struct fidtable_desc *ftab_desc)
  */
 struct cifsd_file *
 insert_id_in_fidtable(struct cifsd_sess *sess,
-	struct cifsd_tcon *tcon, unsigned int id, struct file *filp)
+	struct cifsd_tree_connect *tcon, unsigned int id, struct file *filp)
 {
 	struct cifsd_file *fp = NULL;
 	struct fidtable *ftab;
@@ -357,7 +357,7 @@ struct cifsd_file *get_fp(struct cifsd_work *work, int64_t req_vid,
 	int64_t req_pid)
 {
 	struct cifsd_sess *sess = work->sess;
-	struct cifsd_tcon *tcon = work->tcon;
+	struct cifsd_tree_connect *tcon = work->tcon;
 	struct cifsd_file *fp;
 	int64_t vid, pid;
 
@@ -639,7 +639,7 @@ int close_id(struct cifsd_sess *sess, uint64_t id, uint64_t p_id)
  * delete fid, free associated cifsd file pointer and clear fid bitmap entry
  * in fid table.
  */
-void close_opens_from_fibtable(struct cifsd_sess *sess, struct cifsd_tcon *tcon)
+void close_opens_from_fibtable(struct cifsd_sess *sess, struct cifsd_tree_connect *tcon)
 {
 	struct cifsd_file *file;
 	struct fidtable *ftab;
@@ -834,7 +834,7 @@ struct cifsd_file *lookup_fp_app_id(char *app_id)
  * @filp:		file pointer
  */
 int cifsd_reconnect_durable_fp(struct cifsd_sess *sess, struct cifsd_file *fp,
-	struct cifsd_tcon *tcon)
+	struct cifsd_tree_connect *tcon)
 {
 	struct fidtable *ftab;
 	unsigned int volatile_id;

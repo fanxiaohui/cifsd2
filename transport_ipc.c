@@ -451,7 +451,7 @@ cifsd_ipc_tree_connect_request(int protocol,
 
 	req->handle = next_ipc_msg_handle();
 	req->flags = protocol;
-	req->status = user->status;
+	req->account_flags = user->flags;
 	strncpy(req->account, user_name(user), sizeof(req->account) - 1);
 	strncpy(req->share, share->name, sizeof(req->share) - 1);
 	snprintf(req->peer_addr, sizeof(req->peer_addr), "%pIS", peer_addr);

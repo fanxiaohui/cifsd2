@@ -324,7 +324,7 @@ struct cifsd_work {
 	unsigned int			response_sz;
 
 	struct cifsd_sess		*sess;
-	struct cifsd_tcon		*tcon;
+	struct cifsd_tree_connect	*tcon;
 	__u64				cur_local_sess_id;
 
 	/* Read data buffer */
@@ -553,7 +553,8 @@ extern int update_sess_key(unsigned char *md5_hash, char *nonce,
 	char *server_challenge, int len);
 
 /* trans2 functions */
-char *convert_to_unix_name(char *name, int tid);
+struct cifsd_share_config;
+char *convert_to_unix_name(struct cifsd_share_config *share, char *name);
 void convert_delimiter(char *path, int flags);
 int smb_filldir(struct dir_context *ctx, const char *name, int namlen,
 		loff_t offset, u64 ino, unsigned int d_type);

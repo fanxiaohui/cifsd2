@@ -41,6 +41,12 @@ struct cifsd_share_config {
 	struct work_struct	free_work;
 };
 
+static inline int test_share_config_flag(struct cifsd_share_config *share,
+					 int flag)
+{
+	return share->flags & flag;
+}
+
 extern void __cifsd_share_config_put(struct cifsd_share_config *share);
 
 static inline void cifsd_share_config_put(struct cifsd_share_config *share)

@@ -111,7 +111,7 @@ struct cifsd_inode {
 struct cifsd_file {
 	struct cifsd_tcp_conn *conn;
 	struct cifsd_sess *sess;
-	struct cifsd_tcon *tcon;
+	struct cifsd_tree_connect *tcon;
 	struct cifsd_inode *f_ci;
 	struct cifsd_inode *f_parent_ci;
 	struct oplock_info *f_opinfo;
@@ -201,7 +201,7 @@ struct fidtable_desc {
 
 int init_fidtable(struct fidtable_desc *ftab_desc);
 void close_opens_from_fibtable(struct cifsd_sess *sess,
-	struct cifsd_tcon *tcon);
+	struct cifsd_tree_connect *tcon);
 void destroy_fidtable(struct cifsd_sess *sess);
 void free_fidtable(struct fidtable *ftab);
 struct cifsd_file *
@@ -211,7 +211,7 @@ unsigned int get_pipe_type(char *pipename);
 int cifsd_get_unused_id(struct fidtable_desc *ftab_desc);
 int cifsd_close_id(struct fidtable_desc *ftab_desc, int id);
 struct cifsd_file *
-insert_id_in_fidtable(struct cifsd_sess *sess, struct cifsd_tcon *tcon,
+insert_id_in_fidtable(struct cifsd_sess *sess, struct cifsd_tree_connect *tcon,
 	unsigned int id, struct file *filp);
 void delete_id_from_fidtable(struct cifsd_sess *sess,
 		unsigned int id);
@@ -237,7 +237,7 @@ void destroy_global_fidtable(void);
 /* Durable handle functions */
 struct cifsd_file *cifsd_get_global_fp(uint64_t pid);
 int cifsd_reconnect_durable_fp(struct cifsd_sess *sess, struct cifsd_file *fp,
-	struct cifsd_tcon *tcon);
+	struct cifsd_tree_connect *tcon);
 struct cifsd_file *lookup_fp_clguid(char *createguid);
 struct cifsd_file *lookup_fp_app_id(char *app_id);
 struct cifsd_file *find_fp_using_filename(struct cifsd_sess *sess,

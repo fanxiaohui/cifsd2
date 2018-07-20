@@ -104,3 +104,30 @@ struct cifsd_tree_connect *cifsd_tree_conn_lookup(struct cifsd_sess *sess,
 	}
 	return NULL;
 }
+
+struct cifsd_share_config *cifsd_tree_conn_share(struct cifsd_sess *sess,
+						 unsigned int id)
+{
+	struct cifsd_tree_connect *tc;
+
+	tc = cifsd_tree_conn_lookup(sess, id);
+	if (tc)
+		return tc->share_conf;
+	return NULL;
+}
+
+int cifsd_tree_conn_session_logoff(struct cifsd_sess *sess)
+{
+	int ret = 0;
+
+	while (!list_empty(&sess->tree_conn_list)) {
+		struct cifsd_tree_connect *tc;
+
+		tc = list_entry(sess->tree_conn_list.next,
+				struct cifsd_tree_connect,
+				list);
+		ret |= cifsd_tree_conn_disconnect(tc);
+	}
+
+	return ret;
+}

@@ -49,44 +49,6 @@ LIST_HEAD(global_lock_list);
 unsigned int alloc_roundup_size = 1048576;
 
 /**
- * construct_cifsd_tcon() - alloc tcon object and initialize
- *		 from session and share info and increment tcon count
- * @sess:	session to link with tcon object
- * @share:	Related association of tcon object with share
- *
- * Return:	If Succes, Valid initialized tcon object, else errors
- */
-struct cifsd_tcon *construct_cifsd_tcon(struct cifsd_share *share,
-				struct cifsd_sess *sess)
-{
-	struct cifsd_tcon *tcon;
-	int err;
-
-	tcon = kzalloc(sizeof(struct cifsd_tcon), GFP_KERNEL);
-	if (!tcon)
-		return ERR_PTR(-ENOMEM);
-
-	if (!share->path)
-		goto out;
-
-	err = kern_path(share->path, 0, &tcon->share_path);
-	if (err) {
-		cifsd_err("kern_path() failed for shares(%s)\n", share->path);
-		kfree(tcon);
-		return ERR_PTR(-ENOENT);
-	}
-
-out:
-	tcon->share = share;
-	tcon->sess = sess;
-	INIT_LIST_HEAD(&tcon->tcon_list);
-	list_add(&tcon->tcon_list, &sess->tcon_list);
-	sess->tcon_count++;
-
-	return tcon;
-}
-
-/**
  * check_conn_state() - check state of server thread connection
  * @cifsd_work:     smb work containing server thread information
  *
