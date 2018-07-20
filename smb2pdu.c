@@ -2529,7 +2529,7 @@ int smb2_open(struct cifsd_work *work)
 	if (durable_enable && file_present)
 		file_present = close_disconnected_handle(path.dentry->d_inode);
 
-	if (test_tree_conn_flag(tcon, CIFSD_SHARE_FLAG_WRITEABLE))
+	if (test_tree_conn_flag(tcon, CIFSD_TREE_CONN_FLAG_WRITABLE))
 		open_flags = smb2_create_open_flags(file_present,
 			req->DesiredAccess, req->CreateDisposition);
 	else
@@ -2580,7 +2580,7 @@ int smb2_open(struct cifsd_work *work)
 			}
 		} else {
 			kfree(name);
-			if (test_tree_conn_flag(tcon, CIFSD_SHARE_FLAG_WRITEABLE)) {
+			if (test_tree_conn_flag(tcon, CIFSD_TREE_CONN_FLAG_WRITABLE)) {
 				cifsd_debug("returning as file does not exist\n");
 				rsp->hdr.Status =
 					NT_STATUS_OBJECT_NAME_NOT_FOUND;

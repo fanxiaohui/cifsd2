@@ -2617,7 +2617,7 @@ int smb_nt_create_andx(struct cifsd_work *work)
 	 * - check req->ImpersonationLevel
 	 */
 
-	if (!test_tree_conn_flag(work->tcon, CIFSD_SHARE_FLAG_WRITEABLE)) {
+	if (!test_tree_conn_flag(work->tcon, CIFSD_TREE_CONN_FLAG_WRITABLE)) {
 		if (!file_present) {
 			if (open_flags & O_CREAT) {
 				err = -EACCES;
@@ -5120,7 +5120,7 @@ static int smb_posix_open(struct cifsd_work *work)
 	mode = (umode_t) le64_to_cpu(psx_req->Permissions);
 	rsp_info_level = le16_to_cpu(psx_req->Level);
 
-	if (!test_tree_conn_flag(work->tcon, CIFSD_SHARE_FLAG_WRITEABLE)) {
+	if (!test_tree_conn_flag(work->tcon, CIFSD_TREE_CONN_FLAG_WRITABLE)) {
 		if (!file_present) {
 			if (posix_open_flags & O_CREAT) {
 				err = -EACCES;
