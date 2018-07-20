@@ -32,6 +32,7 @@
 #include "buffer_pool.h"
 #include "transport_tcp.h"
 #include "transport_ipc.h"
+#include "mgmt/user_session.h"
 
 bool global_signing;
 
@@ -304,7 +305,7 @@ static int queue_cifsd_work(struct cifsd_tcp_conn *conn)
 	return 0;
 }
 
-static void free_channel_list(struct cifsd_sess *sess)
+static void free_channel_list(struct cifsd_session *sess)
 {
 	struct channel *chann;
 	struct list_head *tmp, *t;
@@ -320,10 +321,10 @@ static void free_channel_list(struct cifsd_sess *sess)
 	}
 }
 
-void smb_delete_session(struct cifsd_sess *sess)
+void smb_delete_session(struct cifsd_session *sess)
 {
 	cifsd_debug("delete session ID: %llu, session count: %d\n",
-			sess->sess_id, sess->conn->sess_count);
+			sess->id, sess->conn->sess_count);
 
 	sess->valid = 0;
 	list_del(&sess->cifsd_ses_list);
@@ -333,7 +334,7 @@ void smb_delete_session(struct cifsd_sess *sess)
 	sess->conn->sess_count--;
 	kfree(sess->Preauth_HashValue);
 	if (!IS_SMB2(sess->conn))
-		free_smb1_vuid(sess->sess_id);
+		free_smb1_vuid(sess->id);
 	kfree(sess);
 }
 
@@ -360,11 +361,12 @@ static int cifsd_server_process_request(struct cifsd_tcp_conn *conn)
 static int cifsd_server_terminate_conn(struct cifsd_tcp_conn *conn)
 {
 	if (conn->sess_count) {
-		struct cifsd_sess *sess;
+		struct cifsd_session *sess;
 		struct list_head *tmp, *t;
 		list_for_each_safe(tmp, t, &conn->cifsd_sess) {
-			sess = list_entry(tmp, struct cifsd_sess,
-							cifsd_ses_list);
+			sess = list_entry(tmp,
+					  struct cifsd_session,
+					  cifsd_ses_list);
 			smb_delete_session(sess);
 		}
 	}

@@ -39,6 +39,7 @@
 #include "mgmt/user_config.h"
 #include "mgmt/share_config.h"
 #include "mgmt/tree_connect.h"
+#include "mgmt/user_session.h"
 
 bool multi_channel_enable;
 bool encryption_enable;
@@ -107,7 +108,7 @@ struct fs_type_info fs_type[] = {
  */
 static inline int check_session_id(struct cifsd_tcp_conn *conn, uint64_t id)
 {
-	struct cifsd_sess *sess;
+	struct cifsd_session *sess;
 
 	if (id == 0 || id == -1)
 		return 0;
@@ -123,7 +124,7 @@ static inline int check_session_id(struct cifsd_tcp_conn *conn, uint64_t id)
 	return 0;
 }
 
-struct channel *lookup_chann_list(struct cifsd_sess *sess)
+struct channel *lookup_chann_list(struct cifsd_session *sess)
 {
 	struct channel *chann;
 	struct list_head *t;
@@ -618,7 +619,7 @@ int smb2_check_user_session(struct cifsd_work *work)
 {
 	struct smb2_hdr *req_hdr = (struct smb2_hdr *)REQUEST_BUF(work);
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_sess *sess;
+	struct cifsd_session *sess;
 	int rc;
 	unsigned int cmd = conn->ops->get_cmd_val(work);
 
@@ -635,11 +636,11 @@ int smb2_check_user_session(struct cifsd_work *work)
 
 	if (!cifsd_tcp_good(work)) {
 		if (conn->sess_count) {
-			struct cifsd_sess *sess;
+			struct cifsd_session *sess;
 			struct list_head *tmp, *t;
 
 			list_for_each_safe(tmp, t, &conn->cifsd_sess) {
-				sess = list_entry(tmp, struct cifsd_sess,
+				sess = list_entry(tmp, struct cifsd_session,
 						cifsd_ses_list);
 				if (sess->state == SMB2_SESSION_EXPIRED) {
 					cifsd_debug("invalid session\n");
@@ -673,13 +674,13 @@ int smb2_check_user_session(struct cifsd_work *work)
  */
 void smb2_invalidate_prev_session(uint64_t sess_id)
 {
-	struct cifsd_sess *sess;
+	struct cifsd_session *sess;
 	struct list_head *tmp, *t;
 
 	list_for_each_safe(tmp, t, &cifsd_session_list) {
-		sess = list_entry(tmp, struct cifsd_sess,
+		sess = list_entry(tmp, struct cifsd_session,
 				cifsd_ses_global_list);
-		if (sess->sess_id == sess_id) {
+		if (sess->id == sess_id) {
 			smb_delete_session(sess);
 			break;
 		}
@@ -691,15 +692,15 @@ void smb2_invalidate_prev_session(uint64_t sess_id)
  * list
  * @sess_id:	session id to be invalidated
  */
-struct cifsd_sess *smb2_get_session_global_list(uint64_t sess_id)
+struct cifsd_session *smb2_get_session_global_list(uint64_t sess_id)
 {
-	struct cifsd_sess *sess;
+	struct cifsd_session *sess;
 	struct list_head *tmp, *t;
 
 	list_for_each_safe(tmp, t, &cifsd_session_list) {
-		sess = list_entry(tmp, struct cifsd_sess,
+		sess = list_entry(tmp, struct cifsd_session,
 				cifsd_ses_global_list);
-		if (sess->sess_id == sess_id && sess->valid)
+		if (sess->id == sess_id && sess->valid)
 			return sess;
 	}
 
@@ -1162,7 +1163,7 @@ int smb2_sess_setup(struct cifsd_work *work)
 	struct cifsd_tcp_conn *conn = work->conn;
 	struct smb2_sess_setup_req *req;
 	struct smb2_sess_setup_rsp *rsp;
-	struct cifsd_sess *sess;
+	struct cifsd_session *sess;
 	NEGOTIATE_MESSAGE *negblob;
 	struct channel *chann = NULL;
 	int rc = 0;
@@ -1196,15 +1197,15 @@ int smb2_sess_setup(struct cifsd_work *work)
 			smb2_invalidate_prev_session(
 				le64_to_cpu(req->PreviousSessionId));
 
-		sess = kzalloc(sizeof(struct cifsd_sess), GFP_KERNEL);
+		sess = kzalloc(sizeof(struct cifsd_session), GFP_KERNEL);
 		if (sess == NULL) {
 			rc = -ENOMEM;
 			goto out_err;
 		}
 
-		get_random_bytes(&sess->sess_id, sizeof(__u64));
-		cifsd_debug("generate session ID : %llu\n", sess->sess_id);
-		rsp->hdr.SessionId = cpu_to_le64(sess->sess_id);
+		get_random_bytes(&sess->id, sizeof(__u64));
+		cifsd_debug("generate session ID : %llu\n", sess->id);
+		rsp->hdr.SessionId = cpu_to_le64(sess->id);
 		sess->conn = conn;
 		INIT_LIST_HEAD(&sess->cifsd_ses_list);
 		INIT_LIST_HEAD(&sess->cifsd_chann_list);
@@ -1212,7 +1213,6 @@ int smb2_sess_setup(struct cifsd_work *work)
 		list_add(&sess->cifsd_ses_global_list, &cifsd_session_list);
 
 		INIT_LIST_HEAD(&sess->tree_conn_list);
-		sess->tcon_count = 0;
 		sess->valid = 1;
 		conn->sess_count++;
 		rc = init_fidtable(&sess->fidtable);
@@ -1589,7 +1589,7 @@ int smb2_tree_connect(struct cifsd_work *work)
 	struct cifsd_tcp_conn *conn = work->conn;
 	struct smb2_tree_connect_req *req;
 	struct smb2_tree_connect_rsp *rsp;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	char *treename = NULL, *name = NULL;
 	struct cifsd_tree_conn_status status;
 	struct cifsd_share_config *share;
@@ -1756,7 +1756,7 @@ int smb2_tree_disconnect(struct cifsd_work *work)
 {
 	struct smb2_tree_disconnect_req *req;
 	struct smb2_tree_disconnect_rsp *rsp;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct cifsd_tree_connect *tcon = work->tcon;
 
 	req = (struct smb2_tree_disconnect_req *)REQUEST_BUF(work);
@@ -1796,7 +1796,7 @@ int smb2_session_logoff(struct cifsd_work *work)
 	struct cifsd_tcp_conn *conn = work->conn;
 	struct smb2_logoff_req *req;
 	struct smb2_logoff_rsp *rsp;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 
 	req = (struct smb2_logoff_req *)REQUEST_BUF(work);
 	rsp = (struct smb2_logoff_rsp *)RESPONSE_BUF(work);
@@ -1828,8 +1828,6 @@ int smb2_session_logoff(struct cifsd_work *work)
 		smb2_set_err_rsp(work);
 		return 0;
 	}
-
-	WARN_ON(sess->tcon_count != 0);
 
 	sess->valid = 0;
 	sess->state = SMB2_SESSION_EXPIRED;
@@ -2194,7 +2192,7 @@ static inline int check_context_err(void *ctx, char *str)
 int smb2_open(struct cifsd_work *work)
 {
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct cifsd_tree_connect *tcon = work->tcon;
 	struct smb2_create_req *req;
 	struct smb2_create_rsp *rsp, *rsp_org;
@@ -3641,7 +3639,7 @@ static void get_internal_info_pipe(struct smb2_query_info_rsp *rsp,
  *
  * Return:	0 on success, otherwise error
  */
-static int smb2_get_info_file_pipe(struct cifsd_sess *sess,
+static int smb2_get_info_file_pipe(struct cifsd_session *sess,
 	struct smb2_query_info_req *req, struct smb2_query_info_rsp *rsp)
 {
 	struct cifsd_pipe *pipe_desc;
@@ -4280,7 +4278,7 @@ static inline int fsTypeSearch(struct fs_type_info fs_type[],
  * Return:	0 on success, otherwise error
  * TODO: need to implement STATUS_INFO_LENGTH_MISMATCH error handling
  */
-static int smb2_get_info_filesystem(struct cifsd_sess *sess,
+static int smb2_get_info_filesystem(struct cifsd_session *sess,
 	struct smb2_query_info_req *req, struct smb2_query_info_rsp *rsp,
 	void *rsp_org)
 {
@@ -4582,7 +4580,7 @@ int smb2_query_info(struct cifsd_work *work)
 {
 	struct smb2_query_info_req *req;
 	struct smb2_query_info_rsp *rsp, *rsp_org;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	int rc = 0;
 
 	req = (struct smb2_query_info_req *)REQUEST_BUF(work);
@@ -5109,7 +5107,7 @@ out:
 static int smb2_set_info_file(struct cifsd_work *work, struct cifsd_file *fp,
 	int info_class, char *buffer, struct cifsd_share_config *share)
 {
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct nls_table *local_nls = sess->conn->local_nls;
 	int rc = 0;
 	struct file *filp;
@@ -7314,7 +7312,7 @@ void smb3_set_sign_rsp(struct cifsd_work *work)
 void smb3_preauth_hash_rsp(struct cifsd_work *work)
 {
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct smb2_hdr *req = (struct smb2_hdr *)REQUEST_BUF(work);
 	struct smb2_hdr *rsp = (struct smb2_hdr *)RESPONSE_BUF(work);
 
@@ -7367,7 +7365,7 @@ static void cifs_crypt_complete(struct crypto_async_request *req, int err)
 static int smb2_get_enc_key(struct cifsd_tcp_conn *conn, __u64 ses_id,
 	int enc, u8 *key)
 {
-	struct cifsd_sess *sess;
+	struct cifsd_session *sess;
 	u8 *ses_enc_key;
 
 	sess = lookup_session_on_server(conn, ses_id);
@@ -7637,7 +7635,7 @@ int smb3_is_transform_hdr(void *buf)
 int smb3_decrypt_req(struct cifsd_work *work)
 {
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_sess *sess;
+	struct cifsd_session *sess;
 	char *buf = REQUEST_BUF(work);
 	struct smb2_hdr *hdr;
 	unsigned int pdu_length = get_rfc1002_length(buf);

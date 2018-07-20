@@ -323,7 +323,7 @@ struct cifsd_work {
 	char				*response_buf;
 	unsigned int			response_sz;
 
-	struct cifsd_sess		*sess;
+	struct cifsd_session		*sess;
 	struct cifsd_tree_connect	*tcon;
 	__u64				cur_local_sess_id;
 
@@ -396,9 +396,9 @@ struct smb_version_ops {
 	int (*is_sign_req)(struct cifsd_work *work, unsigned int command);
 	int (*check_sign_req)(struct cifsd_work *work);
 	void (*set_sign_rsp)(struct cifsd_work *work);
-	int (*generate_signingkey)(struct cifsd_sess *sess, bool binding,
+	int (*generate_signingkey)(struct cifsd_session *sess, bool binding,
 		char *hash_value);
-	int (*generate_encryptionkey)(struct cifsd_sess *sess);
+	int (*generate_encryptionkey)(struct cifsd_session *sess);
 	int (*is_transform_hdr)(void *buf);
 	int (*decrypt_req)(struct cifsd_work *work);
 	int (*encrypt_resp)(struct cifsd_work *work);
@@ -495,7 +495,7 @@ static inline struct timespec from_kern_timespec(struct timespec64 ts)
 
 bool is_smb_request(struct cifsd_tcp_conn *conn);
 int negotiate_dialect(void *buf);
-struct cifsd_sess *lookup_session_on_server(struct cifsd_tcp_conn *conn,
+struct cifsd_session *lookup_session_on_server(struct cifsd_tcp_conn *conn,
 		uint64_t sess_id);
 int get_nlink(struct kstat *st);
 
@@ -508,7 +508,7 @@ extern int check_smb_message(char *buf);
 extern void dump_smb_msg(void *buf, int smb_buf_length);
 extern int switch_rsp_buf(struct cifsd_work *work);
 extern void ntstatus_to_dos(__u32 ntstatus, __u8 *eclass, __u16 *ecode);
-extern struct cifsd_sess *validate_sess_handle(struct cifsd_sess *session);
+extern struct cifsd_session *validate_sess_handle(struct cifsd_session *session);
 extern int get_pos_strnstr(const char *s1, const char *s2, size_t len);
 extern int smb_check_delete_pending(struct file *filp,
 	struct cifsd_file *curr_fp);
@@ -539,7 +539,7 @@ extern void init_smb2_neg_rsp(struct cifsd_work *work);
 extern int is_smb2_rsp(struct cifsd_work *work);
 
 /* functions */
-extern void smb_delete_session(struct cifsd_sess *sess);
+extern void smb_delete_session(struct cifsd_session *sess);
 
 extern int SMB_NTencrypt(unsigned char *, unsigned char *, unsigned char *,
 		const struct nls_table *);
@@ -576,7 +576,7 @@ int smb_populate_dot_dotdot_entries(struct cifsd_tcp_conn *conn,
 /* netlink functions */
 int cifsd_net_init(void);
 void cifsd_net_exit(void);
-int cifsd_sendmsg(struct cifsd_sess *sess, unsigned int etype,
+int cifsd_sendmsg(struct cifsd_session *sess, unsigned int etype,
 		int pipe_type, unsigned int data_size,
 		unsigned char *data, unsigned int out_buflen);
 int cifsd_kthread_stop_status(int etype);

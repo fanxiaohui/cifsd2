@@ -33,6 +33,7 @@
 #include "mgmt/user_config.h"
 #include "mgmt/share_config.h"
 #include "mgmt/tree_connect.h"
+#include "mgmt/user_session.h"
 
 /*for shortname implementation */
 static const char basechars[43] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_-!@#$%";
@@ -338,7 +339,7 @@ int smb_check_user_session(struct cifsd_work *work)
 {
 	struct smb_hdr *req_hdr = (struct smb_hdr *)REQUEST_BUF(work);
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_sess *sess;
+	struct cifsd_session *sess;
 	struct list_head *tmp;
 	int rc;
 	unsigned int cmd = conn->ops->get_cmd_val(work);
@@ -358,8 +359,8 @@ int smb_check_user_session(struct cifsd_work *work)
 
 	rc = -EINVAL;
 	list_for_each(tmp, &conn->cifsd_sess) {
-		sess = list_entry(tmp, struct cifsd_sess, cifsd_ses_list);
-		if (sess->sess_id == req_hdr->Uid &&
+		sess = list_entry(tmp, struct cifsd_session, cifsd_ses_list);
+		if (sess->id == req_hdr->Uid &&
 				sess->valid) {
 			work->sess = sess;
 			rc = 1;
@@ -412,7 +413,7 @@ int smb_get_cifsd_tcon(struct cifsd_work *work)
 int smb_session_disconnect(struct cifsd_work *work)
 {
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 
 	/* Got a valid session, set connection state */
 	WARN_ON(sess->conn != conn);
@@ -426,7 +427,6 @@ int smb_session_disconnect(struct cifsd_work *work)
 	cifsd_tcp_conn_wait_idle(conn);
 
 	cifsd_tree_conn_session_logoff(sess);
-	WARN_ON(sess->tcon_count != 0);
 
 	/* free all sessions, we have just 1 */
 	list_del(&sess->cifsd_ses_list);
@@ -452,7 +452,7 @@ int smb_tree_disconnect(struct cifsd_work *work)
 	struct smb_hdr *req_hdr = (struct smb_hdr *)REQUEST_BUF(work);
 	struct smb_hdr *rsp_hdr = (struct smb_hdr *)RESPONSE_BUF(work);
 	struct cifsd_tree_connect *tcon = work->tcon;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 
 	if (!tcon) {
 		cifsd_err("Invalid tid %d\n", req_hdr->Tid);
@@ -509,7 +509,7 @@ int smb_tree_connect_andx(struct cifsd_work *work)
 	int extra_byte = 0;
 	char *treename = NULL, *name = NULL;
 	struct cifsd_share_config *share;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	char *dev_type;
 	int dev_flags = 0;
 	struct cifsd_tree_conn_status status;
@@ -1011,7 +1011,7 @@ err_out:
 	return rc;
 }
 
-static int build_sess_rsp_noextsec(struct cifsd_sess *sess,
+static int build_sess_rsp_noextsec(struct cifsd_session *sess,
 		struct smb_com_session_setup_req_no_secext *req,
 		struct smb_com_session_setup_old_resp *rsp)
 {
@@ -1116,7 +1116,7 @@ out_err:
 	return err;
 }
 
-static int build_sess_rsp_extsec(struct cifsd_sess *sess,
+static int build_sess_rsp_extsec(struct cifsd_session *sess,
 	struct smb_com_session_setup_req *req,
 	struct smb_com_session_setup_resp *rsp)
 {
@@ -1308,7 +1308,7 @@ out_err:
 int smb_session_setup_andx(struct cifsd_work *work)
 {
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_sess *sess = NULL;
+	struct cifsd_session *sess = NULL;
 	int rc = 0, cap;
 	unsigned short uid;
 
@@ -1333,9 +1333,9 @@ int smb_session_setup_andx(struct cifsd_work *work)
 			goto out_err;
 		}
 		cifsd_debug("reuse session(%p) session ID : %llu, Uid : %u\n",
-			sess, sess->sess_id, uid);
+			sess, sess->id, uid);
 	} else {
-		sess = kzalloc(sizeof(struct cifsd_sess), GFP_KERNEL);
+		sess = kzalloc(sizeof(struct cifsd_session), GFP_KERNEL);
 		if (sess == NULL) {
 			rc = -ENOMEM;
 			goto out_err;
@@ -1346,7 +1346,6 @@ int smb_session_setup_andx(struct cifsd_work *work)
 		list_add(&sess->cifsd_ses_list, &conn->cifsd_sess);
 		list_add(&sess->cifsd_ses_global_list, &cifsd_session_list);
 		INIT_LIST_HEAD(&sess->tree_conn_list);
-		sess->tcon_count = 0;
 		init_waitqueue_head(&sess->pipe_q);
 		sess->ev_state = NETLINK_REQ_INIT;
 
@@ -1356,9 +1355,9 @@ int smb_session_setup_andx(struct cifsd_work *work)
 			goto out_err;
 		}
 
-		rsp->resp.hdr.Uid = sess->sess_id = uid;
+		rsp->resp.hdr.Uid = sess->id = uid;
 		cifsd_debug("generate session(%p) ID : %llu, Uid : %u\n",
-				sess, sess->sess_id, uid);
+				sess, sess->id, uid);
 	}
 
 	if (cap & CAP_EXTENDED_SECURITY) {
@@ -2004,7 +2003,7 @@ out:
  *
  * Return:	0 on success, otherwise error
  */
-static int alloc_lanman_pipe_desc(struct cifsd_sess *sess)
+static int alloc_lanman_pipe_desc(struct cifsd_session *sess)
 {
 	struct cifsd_pipe *pipe_desc;
 
@@ -2034,7 +2033,7 @@ static int alloc_lanman_pipe_desc(struct cifsd_sess *sess)
  * @sess:	session info
  *
  */
-static void free_lanman_pipe_desc(struct cifsd_sess *sess)
+static void free_lanman_pipe_desc(struct cifsd_session *sess)
 {
 	struct cifsd_pipe *pipe_desc;
 
@@ -2348,7 +2347,7 @@ int smb_nt_create_andx(struct cifsd_work *work)
 	OPEN_RSP *rsp = (OPEN_RSP *)RESPONSE_BUF(work);
 	OPEN_EXT_RSP *ext_rsp = (OPEN_EXT_RSP *)RESPONSE_BUF(work);
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct cifsd_tree_connect *tcon = work->tcon;
 	struct cifsd_share_config *share = work->tcon->share_conf;
 	struct path path;
@@ -3409,7 +3408,7 @@ int smb_flush(struct cifsd_work *work)
 {
 	FLUSH_REQ *req = (FLUSH_REQ *)REQUEST_BUF(work);
 	FLUSH_RSP *rsp = (FLUSH_RSP *)RESPONSE_BUF(work);
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct cifsd_file *file;
 	struct fidtable *ftab;
 	int err = 0, id;
@@ -5034,7 +5033,7 @@ static int smb_posix_open(struct cifsd_work *work)
 	TRANSACTION2_SPI_RSP *pSMB_rsp =
 		(TRANSACTION2_SPI_RSP *)RESPONSE_BUF(work);
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct cifsd_share_config *share = work->tcon->share_conf;
 	OPEN_PSX_REQ *psx_req;
 	OPEN_PSX_RSP *psx_rsp;
@@ -6104,7 +6103,7 @@ static int find_first(struct cifsd_work *work)
 {
 	struct smb_hdr *rsp_hdr = (struct smb_hdr *)RESPONSE_BUF(work);
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct cifsd_share_config *share = work->tcon->share_conf;
 	struct smb_trans2_req *req = (struct smb_trans2_req *)REQUEST_BUF(work);
 	TRANSACTION2_RSP *rsp = (TRANSACTION2_RSP *)RESPONSE_BUF(work);
@@ -6349,7 +6348,7 @@ static int find_next(struct cifsd_work *work)
 {
 	struct smb_hdr *rsp_hdr = (struct smb_hdr *)RESPONSE_BUF(work);
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct cifsd_share_config *share = work->tcon->share_conf;
 	struct smb_trans2_req *req = (struct smb_trans2_req *)REQUEST_BUF(work);
 	TRANSACTION2_RSP *rsp = (TRANSACTION2_RSP *)RESPONSE_BUF(work);
@@ -8209,7 +8208,7 @@ int smb_open_andx(struct cifsd_work *work)
 	OPENX_REQ *req = (OPENX_REQ *)REQUEST_BUF(work);
 	OPENX_RSP *rsp = (OPENX_RSP *)RESPONSE_BUF(work);
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct cifsd_share_config *share = work->tcon->share_conf;
 	struct path path;
 	struct kstat stat;

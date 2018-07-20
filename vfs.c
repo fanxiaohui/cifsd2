@@ -40,6 +40,7 @@
 
 #include "mgmt/share_config.h"
 #include "mgmt/tree_connect.h"
+#include "mgmt/user_session.h"
 
 /**
  * cifsd_vfs_create() - vfs helper for smb create file
@@ -274,7 +275,7 @@ out:
 int cifsd_vfs_write(struct cifsd_work *work, struct cifsd_file *fp,
 	char *buf, size_t count, loff_t *pos, bool sync, ssize_t *written)
 {
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct file *filp;
 	loff_t	offset = *pos;
 	int err = 0;
@@ -389,7 +390,7 @@ void smb_check_attrs(struct inode *inode, struct iattr *attrs)
 int cifsd_vfs_setattr(struct cifsd_work *work, const char *name,
 		uint64_t fid, struct iattr *attrs)
 {
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct file *filp;
 	struct dentry *dentry;
 	struct inode *inode;
@@ -481,7 +482,7 @@ out:
 int cifsd_vfs_getattr(struct cifsd_work *work, uint64_t fid,
 		struct kstat *stat)
 {
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct file *filp;
 	struct cifsd_file *fp;
 	int err;
@@ -513,7 +514,7 @@ int cifsd_vfs_getattr(struct cifsd_work *work, uint64_t fid,
  */
 int cifsd_vfs_fsync(struct cifsd_work *work, uint64_t fid, uint64_t p_id)
 {
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct cifsd_file *fp;
 	int err;
 
@@ -878,7 +879,7 @@ out1:
 int cifsd_vfs_truncate(struct cifsd_work *work, const char *name,
 	struct cifsd_file *fp, loff_t size)
 {
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct path path;
 	int err = 0;
 	struct inode *inode;
@@ -1313,7 +1314,7 @@ void cifsd_vfs_get_smb2_sector_size(struct inode *inode,
 struct cifsd_file *cifsd_vfs_dentry_open(struct cifsd_work *work,
 	const struct path *path, int flags, int option, int fexist)
 {
-	struct cifsd_sess *sess = work->sess;
+	struct cifsd_session *sess = work->sess;
 	struct file *filp;
 	int id, err = 0;
 	struct cifsd_file *fp = NULL;
@@ -1329,7 +1330,7 @@ struct cifsd_file *cifsd_vfs_dentry_open(struct cifsd_work *work,
 
 	cifsd_vfs_set_fadvise(filp, option);
 
-	sess_id = sess == NULL ? 0 : sess->sess_id;
+	sess_id = sess == NULL ? 0 : sess->id;
 	id = cifsd_get_unused_id(&sess->fidtable);
 	if (id < 0)
 		goto err_out3;

@@ -31,6 +31,8 @@
 #include "transport_tcp.h"
 #include "vfs.h"
 
+#include "mgmt/user_session.h"
+
 static struct {
 	int index;
 	char *name;
@@ -327,15 +329,15 @@ int negotiate_dialect(void *buf)
 	return ret;
 }
 
-struct cifsd_sess *lookup_session_on_server(struct cifsd_tcp_conn *conn,
+struct cifsd_session *lookup_session_on_server(struct cifsd_tcp_conn *conn,
 		uint64_t sess_id)
 {
-	struct cifsd_sess *sess;
+	struct cifsd_session *sess;
 	struct list_head *tmp, *t;
 
 	list_for_each_safe(tmp, t, &conn->cifsd_sess) {
-		sess = list_entry(tmp, struct cifsd_sess, cifsd_ses_list);
-		if (sess->sess_id == sess_id)
+		sess = list_entry(tmp, struct cifsd_session, cifsd_ses_list);
+		if (sess->id == sess_id)
 			return sess;
 	}
 
@@ -349,14 +351,15 @@ struct cifsd_sess *lookup_session_on_server(struct cifsd_tcp_conn *conn,
  *
  * Return:      matching session handle, otherwise NULL
  */
-struct cifsd_sess *validate_sess_handle(struct cifsd_sess *session)
+struct cifsd_session *validate_sess_handle(struct cifsd_session *session)
 {
-	struct cifsd_sess *sess;
+	struct cifsd_session *sess;
 	struct list_head *tmp, *t;
 
 	list_for_each_safe(tmp, t, &cifsd_session_list) {
-		sess = list_entry(tmp, struct cifsd_sess,
-				cifsd_ses_global_list);
+		sess = list_entry(tmp,
+				  struct cifsd_session,
+				  cifsd_ses_global_list);
 		if (sess == session)
 			return sess;
 	}

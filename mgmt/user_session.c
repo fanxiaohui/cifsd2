@@ -20,6 +20,7 @@
 #include <linux/slab.h>
 #include <linux/rwsem.h>
 
+#include "cifds_ida.h"
 #include "user_session.h"
 #include "tree_connect.h"
 #include "../buffer_pool.h"
