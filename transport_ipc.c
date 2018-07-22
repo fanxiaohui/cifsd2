@@ -32,6 +32,7 @@
 #include "mgmt/share_config.h"
 #include "mgmt/user_session.h"
 #include "mgmt/tree_connect.h"
+#include "mgmt/cifsd_ida.h"
 
 #define IPC_WAIT_TIMEOUT	(2 * HZ)
 
@@ -39,11 +40,12 @@
 static DEFINE_HASHTABLE(ipc_msg_table, IPC_MSG_HASH_BITS);
 
 static DECLARE_RWSEM(ipc_msg_table_lock);
-static unsigned short ipc_msg_handle;
+
+struct cifsd_ida *ida;
 
 static unsigned int cifsd_tools_pid;
 
-#define CIFSD_IPC_MSG_HANDLE(m)	(*(unsigned short *)m)
+#define CIFSD_IPC_MSG_HANDLE(m)	(*(unsigned int *)m)
 
 #define CIFSD_INVALID_IPC_VERSION(m)					\
 	({								\
@@ -230,9 +232,15 @@ static void ipc_msg_free(struct cifsd_ipc_msg *msg)
 	cifsd_free(msg);
 }
 
+static void ipc_msg_handle_free(int handle)
+{
+	if (handle >= 0)
+		cifds_release_id(ida, handle);
+}
+
 static int handle_response(int type, void *payload, size_t sz)
 {
-	unsigned short handle = CIFSD_IPC_MSG_HANDLE(payload);
+	int handle = CIFSD_IPC_MSG_HANDLE(payload);
 	struct ipc_msg_table_entry *entry;
 	int ret = 0;
 
@@ -339,17 +347,9 @@ static int handle_generic_event(struct sk_buff *skb, struct genl_info *info)
 	return handle_response(type, payload, sz);
 }
 
-static unsigned int next_ipc_msg_handle(void)
+static int next_ipc_msg_handle(void)
 {
-	unsigned int ret;
-
-	down_write(&ipc_msg_table_lock);
-	do {
-		ret = ipc_msg_handle++;
-	} while (ret == 0);
-	up_write(&ipc_msg_table_lock);
-
-	return ret;
+	return cifds_acquire_next_smb2_id(ida);
 }
 
 static int ipc_msg_send(struct cifsd_ipc_msg *msg)
@@ -389,6 +389,9 @@ static void *ipc_msg_send_request(struct cifsd_ipc_msg *msg,
 {
 	struct ipc_msg_table_entry entry;
 	int ret;
+
+	if ((int)handle < 0)
+		return NULL;
 
 	entry.type = msg->type;
 	entry.response = NULL;
@@ -430,6 +433,7 @@ struct cifsd_login_response *cifsd_ipc_login_request(const char *account)
 	strncpy(req->account, account, sizeof(req->account) - 1);
 
 	resp = ipc_msg_send_request(msg, req->handle);
+	ipc_msg_handle_free(req->handle);
 	ipc_msg_free(msg);
 	return resp;
 }
@@ -465,6 +469,7 @@ cifsd_ipc_tree_connect_request(struct cifsd_session *sess,
 		req->flags |= CIFSD_TREE_CONN_FLAG_REQUEST_SMB2;
 
 	resp = ipc_msg_send_request(msg, req->handle);
+	ipc_msg_handle_free(req->handle);
 	ipc_msg_free(msg);
 	return resp;
 }
@@ -523,6 +528,7 @@ struct cifsd_heartbeat *cifsd_ipc_heartbeat_request(void)
 	out->handle = next_ipc_msg_handle();
 
 	in = ipc_msg_send_request(msg, out->handle);
+	ipc_msg_handle_free(out->handle);
 	ipc_msg_free(msg);
 	return in;
 }
@@ -544,6 +550,7 @@ cifsd_ipc_share_config_request(const char *name)
 	strncpy(req->share_name, name, sizeof(req->share_name) - 1);
 
 	resp = ipc_msg_send_request(msg, req->handle);
+	ipc_msg_handle_free(req->handle);
 	ipc_msg_free(msg);
 	return resp;
 }
@@ -569,6 +576,7 @@ void cifsd_ipc_free_rpc_handle(int handle)
 
 void cifsd_ipc_release(void)
 {
+	cifsd_ida_free(ida);
 	genl_unregister_family(&cifsd_genl_family);
 }
 
@@ -580,5 +588,9 @@ int cifsd_ipc_init(void)
 		pr_err("Failed to register CIFSD netlink interface %d\n", ret);
 		return ret;
 	}
+
+	ida = cifsd_ida_alloc(0);
+	if (!ida)
+		return -ENOMEM;
 	return 0;
 }
