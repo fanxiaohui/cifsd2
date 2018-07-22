@@ -20,7 +20,7 @@
 #include <linux/slab.h>
 #include <linux/rwsem.h>
 
-#include "cifds_ida.h"
+#include "cifsd_ida.h"
 #include "user_session.h"
 #include "tree_connect.h"
 #include "../transport_ipc.h"
