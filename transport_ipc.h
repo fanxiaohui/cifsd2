@@ -44,9 +44,8 @@ struct cifsd_heartbeat *cifsd_ipc_heartbeat_request(void);
 struct cifsd_share_config_response *
 cifsd_ipc_share_config_request(const char *name);
 
-int cifsd_ipc_session_rpc_alloc(struct cifsd_session *sess);
-void cifsd_ipc_session_rpc_free(struct cifsd_session *sess, int id);
-void cifsd_ipc_session_rpc_list_clear(struct cifsd_session *sess);
+int cifsd_ipc_rpc_handle_alloc(void);
+void cifsd_ipc_free_rpc_handle(int handle);
 
 void cifsd_ipc_release(void);
 int cifsd_ipc_init(void);

@@ -33,6 +33,11 @@ static struct cifsd_ida *session_ida;
 static DEFINE_HASHTABLE(sessions_table, SESSION_HASH_BITS);
 static DECLARE_RWSEM(sessions_table_lock);
 
+struct cifsd_session_rpc {
+	int			id;
+	struct list_head	list;
+};
+
 static void free_channel_list(struct cifsd_session *sess)
 {
 	struct channel *chann;
@@ -57,9 +62,24 @@ static void __kill_smb2_session(struct cifsd_session *sess)
 	destroy_fidtable(sess);
 }
 
+static void cifsd_session_rpc_clear_list(struct cifsd_session *sess)
+{
+	struct cifsd_session_rpc *entry;
+
+	while (!list_empty(&sess->rpc_handle_list)) {
+		entry = list_entry(sess->rpc_handle_list.next,
+				   struct cifsd_session_rpc,
+				   list);
+
+		list_del(&entry->list);
+		cifsd_ipc_free_rpc_handle(entry->id);
+		cifsd_free(entry);
+	}
+}
+
 void cifsd_session_destroy(struct cifsd_session *sess)
 {
-	cifsd_ipc_session_rpc_list_clear(sess);
+	cifsd_session_rpc_clear_list(sess);
 	free_channel_list(sess);
 	kfree(sess->Preauth_HashValue);
 	cifds_release_id(session_ida, sess->id);
@@ -130,7 +150,7 @@ static struct cifsd_session *__session_create(int protocol)
 	set_session_flag(sess, protocol);
 	INIT_LIST_HEAD(&sess->tree_conn_list);
 	INIT_LIST_HEAD(&sess->cifsd_chann_list);
-	INIT_LIST_HEAD(&sess->ipc_handle_list);
+	INIT_LIST_HEAD(&sess->rpc_handle_list);
 	sess->sequence_number = 1;
 	sess->valid = 1;
 	init_waitqueue_head(&sess->pipe_q);

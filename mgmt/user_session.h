@@ -69,7 +69,7 @@ struct cifsd_session {
 	struct list_head		cifsd_chann_list;
 	struct list_head		tree_conn_list;
 	struct cifsd_ida		*tree_conn_ida;
-	struct list_head		ipc_handle_list;
+	struct list_head		rpc_handle_list;
 
 	/* should be under CONFIG_CIFS_SMB2_SERVER */
 	struct fidtable_desc		fidtable;

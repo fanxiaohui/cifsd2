@@ -71,7 +71,6 @@ struct ipc_msg_table_entry {
 	unsigned int		type;
 	wait_queue_head_t	wait;
 	struct hlist_node	ipc_table_hlist;
-	struct list_head	sess_ipc_list;
 
 	void			*response;
 };
@@ -549,58 +548,21 @@ cifsd_ipc_share_config_request(const char *name)
 	return resp;
 }
 
-int cifsd_ipc_session_rpc_alloc(struct cifsd_session *sess)
+int cifsd_ipc_rpc_handle_alloc(void)
 {
-	struct ipc_msg_table_entry *entry;
-
-	entry = cifsd_alloc(sizeof(struct ipc_msg_table_entry));
-	if (!entry)
-		return -ENOMEM;
-
-	entry->handle = next_ipc_msg_handle();
-	entry->response = NULL;
-	init_waitqueue_head(&entry->wait);
-
-	down_write(&ipc_msg_table_lock);
-	hash_add(ipc_msg_table, &entry->ipc_table_hlist, entry->handle);
-	list_add(&entry->sess_ipc_list, &sess->ipc_handle_list);
-	up_write(&ipc_msg_table_lock);
-
-	return entry->handle;
+	return next_ipc_msg_handle();
 }
 
-void cifsd_ipc_session_rpc_free(struct cifsd_session *sess, int handle)
+void cifsd_ipc_free_rpc_handle(int handle)
 {
 	struct ipc_msg_table_entry *entry;
 
 	down_write(&ipc_msg_table_lock);
-	list_for_each_entry(entry, &sess->ipc_handle_list, sess_ipc_list) {
-		if (entry->handle != handle)
+	hash_for_each_possible(ipc_msg_table, entry, ipc_table_hlist, handle) {
+		if (handle != entry->handle)
 			continue;
-
-		list_del(&entry->sess_ipc_list);
 		hash_del(&entry->ipc_table_hlist);
-		cifsd_free(entry->response);
-		cifsd_free(entry);
 		break;
-	}
-	up_write(&ipc_msg_table_lock);
-}
-
-void cifsd_ipc_session_rpc_list_clear(struct cifsd_session *sess)
-{
-	struct ipc_msg_table_entry *entry;
-
-	down_write(&ipc_msg_table_lock);
-	while (!list_empty(&sess->ipc_handle_list)) {
-		entry = list_entry(sess->ipc_handle_list.next,
-				   struct ipc_msg_table_entry,
-				   sess_ipc_list);
-
-		list_del(&entry->sess_ipc_list);
-		hash_del(&entry->ipc_table_hlist);
-		cifsd_free(entry->response);
-		cifsd_free(entry);
 	}
 	up_write(&ipc_msg_table_lock);
 }
