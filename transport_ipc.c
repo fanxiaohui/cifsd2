@@ -349,7 +349,7 @@ static int handle_generic_event(struct sk_buff *skb, struct genl_info *info)
 
 static int next_ipc_msg_handle(void)
 {
-	return cifds_acquire_next_smb2_id(ida);
+	return cifds_acquire_id(ida);
 }
 
 static int ipc_msg_send(struct cifsd_ipc_msg *msg)
@@ -589,7 +589,7 @@ int cifsd_ipc_init(void)
 		return ret;
 	}
 
-	ida = cifsd_ida_alloc(0);
+	ida = cifsd_ida_alloc();
 	if (!ida)
 		return -ENOMEM;
 	return 0;

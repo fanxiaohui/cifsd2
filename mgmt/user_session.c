@@ -120,7 +120,7 @@ struct cifsd_session *cifsd_session_lookup(unsigned long long id)
 
 static int __init_smb1_session(struct cifsd_session *sess)
 {
-	int id = cifds_acquire_next_smb1_id(session_ida);
+	int id = cifds_acquire_smb1_uid(session_ida);
 
 	if (id < 0)
 		return -EINVAL;
@@ -130,7 +130,7 @@ static int __init_smb1_session(struct cifsd_session *sess)
 
 static int __init_smb2_session(struct cifsd_session *sess)
 {
-	int id = cifds_acquire_next_smb2_id(session_ida);
+	int id = cifds_acquire_smb2_uid(session_ida);
 
 	if (id < 0)
 		return -EINVAL;
@@ -165,7 +165,7 @@ static struct cifsd_session *__session_create(int protocol)
 		break;
 	}
 
-	sess->tree_conn_ida = cifsd_ida_alloc(0);
+	sess->tree_conn_ida = cifsd_ida_alloc();
 	if (!sess->tree_conn_ida)
 		ret = -ENOMEM;
 
@@ -195,9 +195,9 @@ int cifsd_acquire_tree_conn_id(struct cifsd_session *sess)
 	int id = -EINVAL;
 
 	if (test_session_flag(sess, CIFDS_SESSION_FLAG_SMB1))
-		id = cifds_acquire_next_smb1_id(sess->tree_conn_ida);
+		id = cifds_acquire_smb1_tid(sess->tree_conn_ida);
 	if (test_session_flag(sess, CIFDS_SESSION_FLAG_SMB2))
-		id = cifds_acquire_next_smb2_id(sess->tree_conn_ida);
+		id = cifds_acquire_smb2_tid(sess->tree_conn_ida);
 
 	return id;
 }
@@ -209,7 +209,7 @@ void cifsd_release_tree_conn_id(struct cifsd_session *sess, int id)
 
 int cifsd_init_session_table(void)
 {
-	session_ida = cifsd_ida_alloc(1);
+	session_ida = cifsd_ida_alloc();
 	if (!session_ida)
 		return -ENOMEM;
 	return 0;

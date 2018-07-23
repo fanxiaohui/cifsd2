@@ -24,40 +24,32 @@
 
 struct cifsd_ida {
 	struct ida	map;
-	int		start;
 };
 
-static struct cifsd_ida *cifsd_ida_alloc(int start)
-{
-	struct cifsd_ida *ida;
-	
-	ida = kmalloc(sizeof(struct cifsd_ida), GFP_KERNEL);
-	if (!ida)
-		return NULL;
+struct cifsd_ida *cifsd_ida_alloc(void);
+void cifsd_ida_free(struct cifsd_ida *ida);
 
-	ida->start = start;
-	ida_init(&ida->map);
-	return ida;
-}
+/*
+ * 2.2.1.6.7 TID Generation
+ *    The value 0xFFFF MUST NOT be used as a valid TID. All other
+ *    possible values for TID, including zero (0x0000), are valid.
+ *    The value 0xFFFF is used to specify all TIDs or no TID,
+ *    depending upon the context in which it is used.
+ */
+int cifds_acquire_smb1_tid(struct cifsd_ida *ida);
+int cifds_acquire_smb2_tid(struct cifsd_ida *ida);
 
-static void cifsd_ida_free(struct cifsd_ida *ida)
-{
-	ida_destroy(&ida->map);
-	kfree(ida);
-}
+/*
+ * 2.2.1.6.8 UID Generation
+ *    The value 0xFFFE was declared reserved in the LAN Manager 1.0
+ *    documentation, so a value of 0xFFFE SHOULD NOT be used as a
+ *    valid UID.<21> All other possible values for a UID, excluding
+ *    zero (0x0000), are valid.
+ */
+int cifds_acquire_smb1_uid(struct cifsd_ida *ida);
+int cifds_acquire_smb2_uid(struct cifsd_ida *ida);
 
-static int cifds_acquire_next_smb1_id(struct cifsd_ida *ida)
-{
-	return ida_simple_get(&ida->map, ida->start, 0xFFFE, GFP_KERNEL);
-}
+int cifds_acquire_id(struct cifsd_ida *ida);
 
-static int cifds_acquire_next_smb2_id(struct cifsd_ida *ida)
-{
-	return ida_simple_get(&ida->map, 0xFFFF + 1, 0, GFP_KERNEL);
-}
-
-static void cifds_release_id(struct cifsd_ida *ida, int id)
-{
-	ida_simple_remove(&ida->map, id);
-}
+void cifds_release_id(struct cifsd_ida *ida, int id);
 #endif /* __CIFSD_IDA_MANAGEMENT_H__ */
