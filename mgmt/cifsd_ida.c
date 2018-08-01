@@ -48,7 +48,13 @@ int cifds_acquire_smb1_tid(struct cifsd_ida *ida)
 
 int cifds_acquire_smb2_tid(struct cifsd_ida *ida)
 {
-	return __acquire_id(ida, 0xFFFF + 1, 0);
+	int id;
+
+	do {
+		id = __acquire_id(ida, 0, 0);
+	} while (id == 0xFFFF);
+
+	return id;
 }
 
 int cifds_acquire_smb1_uid(struct cifsd_ida *ida)
@@ -58,7 +64,13 @@ int cifds_acquire_smb1_uid(struct cifsd_ida *ida)
 
 int cifds_acquire_smb2_uid(struct cifsd_ida *ida)
 {
-	return __acquire_id(ida, 0xFFFF + 1, 0);
+	int id;
+
+	do {
+		id = __acquire_id(ida, 1, 0);
+	} while (id == 0xFFFE);
+
+	return id;
 }
 
 int cifds_acquire_id(struct cifsd_ida *ida)
