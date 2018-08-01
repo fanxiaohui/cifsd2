@@ -6488,7 +6488,8 @@ int smb2_ioctl(struct cifsd_work *work)
 		break;
 	}
 	case FSCTL_PIPE_TRANSCEIVE:
-		if (rsp->hdr.Id.SyncId.TreeId != 1) {
+		/* @FIXME */
+		if (rsp->hdr.Id.SyncId.TreeId != 0) {
 			cifsd_debug("Not Pipe transceive\n");
 			goto out;
 		}
