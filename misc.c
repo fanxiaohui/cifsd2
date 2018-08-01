@@ -352,16 +352,8 @@ struct cifsd_session *validate_sess_handle(struct cifsd_session *session)
 	struct cifsd_session *sess;
 	struct list_head *tmp, *t;
 
-	list_for_each_safe(tmp, t, &cifsd_session_list) {
-		sess = list_entry(tmp,
-				  struct cifsd_session,
-				  cifsd_ses_global_list);
-		if (sess == session)
-			return sess;
-	}
-
-	cifsd_err("session(%p) not found\n", session);
-	return NULL;
+	pr_err("REMOVE ME\n");
+	return session;
 }
 
 #ifndef CONFIG_CIFS_SMB2_SERVER
