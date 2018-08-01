@@ -349,9 +349,6 @@ struct cifsd_session *lookup_session_on_server(struct cifsd_tcp_conn *conn,
  */
 struct cifsd_session *validate_sess_handle(struct cifsd_session *session)
 {
-	struct cifsd_session *sess;
-	struct list_head *tmp, *t;
-
 	pr_err("REMOVE ME\n");
 	return session;
 }
