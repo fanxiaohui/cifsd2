@@ -63,6 +63,20 @@ static void __kill_smb2_session(struct cifsd_session *sess)
 	destroy_fidtable(sess);
 }
 
+static void __session_rpc_close(struct cifsd_session *sess,
+				struct cifsd_session_rpc *entry)
+{
+	struct cifsd_rpc_command *resp;
+
+	resp = cifsd_rpc_close(sess, entry->id);
+	if (!resp)
+		pr_err("Unable to close RPC pipe %d\n", entry->id);
+
+	cifsd_free(resp);
+	cifsd_rpc_id_free(entry->id);
+	cifsd_free(entry);
+}
+
 static void cifsd_session_rpc_clear_list(struct cifsd_session *sess)
 {
 	struct cifsd_session_rpc *entry;
@@ -73,8 +87,7 @@ static void cifsd_session_rpc_clear_list(struct cifsd_session *sess)
 				   list);
 
 		list_del(&entry->list);
-		cifsd_rpc_id_free(entry->id);
-		cifsd_free(entry);
+		__session_rpc_close(sess, entry);
 	}
 }
 
@@ -92,6 +105,7 @@ static int __rpc_method(char *rpc_name)
 int cifsd_session_rpc_open(struct cifsd_session *sess, char *rpc_name)
 {
 	struct cifsd_session_rpc *entry;
+	struct cifsd_rpc_command *resp;
 	int method;
 
 	method = __rpc_method(rpc_name);
@@ -109,7 +123,14 @@ int cifsd_session_rpc_open(struct cifsd_session *sess, char *rpc_name)
 		return -EINVAL;
 	}
 
+	resp = cifsd_rpc_open(sess, entry->id);
+	if (!resp) {
+		cifsd_free(entry);
+		return -EINVAL;
+	}
+
 	list_add(&entry->list, &sess->rpc_handle_list);
+	cifsd_free(resp);
 	return entry->id;
 }
 
@@ -119,9 +140,8 @@ void cifsd_session_rpc_close(struct cifsd_session *sess, int id)
 
 	list_for_each_entry(entry, &sess->rpc_handle_list, list) {
 		if (entry->id == id) {
-			cifsd_rpc_id_free(id);
 			list_del(&entry->list);
-			cifsd_free(entry);
+			__session_rpc_close(sess, entry);
 			break;
 		}
 	}
