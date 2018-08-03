@@ -1834,7 +1834,6 @@ static int create_smb2_pipe(struct cifsd_work *work)
 	struct smb2_create_req *req;
 	int id;
 	int err;
-	unsigned int pipe_type;
 	char *name;
 
 	rsp = (struct smb2_create_rsp *)RESPONSE_BUF(work);
@@ -1848,29 +1847,9 @@ static int create_smb2_pipe(struct cifsd_work *work)
 		goto out;
 	}
 
-	pipe_type = get_pipe_type(name);
-	if (pipe_type == INVALID_PIPE) {
-		cifsd_debug("pipe %s not supported\n", name);
-		rsp->hdr.Status = NT_STATUS_OBJECT_NAME_NOT_FOUND;
-		err = -ENOENT;
-		goto out;
-	}
-
-	/* Assigning temporary fid for pipe */
-	id = get_pipe_id(work->sess, pipe_type);
-	if (id < 0) {
-		if (id == -EMFILE)
-			rsp->hdr.Status = NT_STATUS_TOO_MANY_OPENED_FILES;
-		else
-			rsp->hdr.Status = NT_STATUS_NO_MEMORY;
-		err = id;
-		goto out;
-	}
-
-	err = cifsd_sendmsg(work->sess,
-			CIFSD_KEVENT_CREATE_PIPE, pipe_type, 0, NULL, 0);
-	if (err)
-		cifsd_err("failed to send event, err %d\n", err);
+	id = cifsd_session_rpc_open(work->sess, name);
+	if (id < 0)
+		pr_err("Unable to open RPC pipe: %d\n", id);
 
 	rsp->StructureSize = cpu_to_le16(89);
 	rsp->OplockLevel = SMB2_OPLOCK_LEVEL_NONE;
@@ -1896,7 +1875,6 @@ static int create_smb2_pipe(struct cifsd_work *work)
 out:
 	smb2_set_err_rsp(work);
 	return err;
-
 }
 
 #define DURABLE_RECONN_V2	1
@@ -3624,7 +3602,6 @@ static void get_internal_info_pipe(struct smb2_query_info_rsp *rsp,
 static int smb2_get_info_file_pipe(struct cifsd_session *sess,
 	struct smb2_query_info_req *req, struct smb2_query_info_rsp *rsp)
 {
-	struct cifsd_pipe *pipe_desc;
 	uint64_t id;
 	int rc;
 
@@ -3636,9 +3613,8 @@ static int smb2_get_info_file_pipe(struct cifsd_session *sess,
 	 * pipe without opening it, checking error condition here
 	 */
 	id = le64_to_cpu(req->VolatileFileId);
-	pipe_desc = get_pipe_desc(sess, id);
-	if (!pipe_desc) {
-		cifsd_debug("Pipe not opened or invalid in Pipe id\n");
+	if (!cifsd_session_rpc_method(sess, id)) {
+		pr_err("Unknown RPC pipe id: %d\n", id);
 		return -ENOENT;
 	}
 
@@ -3658,7 +3634,6 @@ static int smb2_get_info_file_pipe(struct cifsd_session *sess,
 			req->FileInfoClass);
 		rc = -EOPNOTSUPP;
 	}
-
 	return rc;
 }
 
@@ -4632,9 +4607,7 @@ int smb2_query_info(struct cifsd_work *work)
  */
 static int smb2_close_pipe(struct cifsd_work *work)
 {
-	struct cifsd_pipe *pipe_desc;
 	uint64_t id;
-	int rc = 0;
 
 	struct smb2_close_req *req =
 		(struct smb2_close_req *)REQUEST_BUF(work);
@@ -4642,13 +4615,8 @@ static int smb2_close_pipe(struct cifsd_work *work)
 		(struct smb2_close_rsp *)RESPONSE_BUF(work);
 
 	id = le64_to_cpu(req->VolatileFileId);
-	pipe_desc = get_pipe_desc(work->sess, id);
-	if (!pipe_desc) {
-		cifsd_debug("Pipe not opened or invalid in Pipe id\n");
-		rsp->hdr.Status = NT_STATUS_FILE_CLOSED;
-		smb2_set_err_rsp(work);
-		return 0;
-	}
+	cifsd_session_rpc_close(work->sess, id);
+
 	rsp->StructureSize = cpu_to_le16(60);
 	rsp->Flags = 0;
 	rsp->Reserved = 0;
@@ -4660,21 +4628,6 @@ static int smb2_close_pipe(struct cifsd_work *work)
 	rsp->EndOfFile = 0;
 	rsp->Attributes = 0;
 	inc_rfc1001_len(rsp, 60);
-
-	if (!rc) {
-		rc = cifsd_sendmsg(work->sess,
-				CIFSD_KEVENT_DESTROY_PIPE,
-				pipe_desc->pipe_type, 0, NULL, 0);
-		if (rc)
-			cifsd_err("failed to send event, err %d\n", rc);
-	}
-
-	rc = close_pipe_id(work->sess, pipe_desc->pipe_type);
-	if (rc < 0) {
-		rsp->hdr.Status = NT_STATUS_FILE_CLOSED;
-		smb2_set_err_rsp(work);
-	}
-
 	return 0;
 }
 
