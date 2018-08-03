@@ -116,22 +116,22 @@ int cifsd_session_rpc_open(struct cifsd_session *sess, char *rpc_name)
 	if (!entry)
 		return -EINVAL;
 
+	list_add(&entry->list, &sess->rpc_handle_list);
 	entry->method = method;
 	entry->id = cifsd_ipc_id_alloc();
-	if (entry->id < 0) {
-		kfree(entry);
-		return -EINVAL;
-	}
+	if (entry->id < 0)
+		goto error;
 
 	resp = cifsd_rpc_open(sess, entry->id);
-	if (!resp) {
-		cifsd_free(entry);
-		return -EINVAL;
-	}
+	if (!resp)
+		goto error;
 
-	list_add(&entry->list, &sess->rpc_handle_list);
 	cifsd_free(resp);
 	return entry->id;
+error:
+	list_del(&entry->list);
+	cifsd_free(entry);
+	return -EINVAL;
 }
 
 void cifsd_session_rpc_close(struct cifsd_session *sess, int id)
