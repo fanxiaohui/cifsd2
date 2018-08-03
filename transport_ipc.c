@@ -86,51 +86,45 @@ static const struct nla_policy cifsd_nl_policy[CIFSD_EVENT_MAX] = {
 	[CIFSD_EVENT_UNSPEC] = {
 		.len = 0,
 	},
-
 	[CIFSD_EVENT_HEARTBEAT_REQUEST] = {
 		.len = sizeof(struct cifsd_heartbeat),
 	},
-
 	[CIFSD_EVENT_HEARTBEAT_RESPONSE] = {
 		.len = sizeof(struct cifsd_heartbeat),
 	},
-
 	[CIFSD_EVENT_STARTING_UP] = {
 		.len = sizeof(struct cifsd_startup_shutdown),
 	},
-
 	[CIFSD_EVENT_SHUTTING_DOWN] = {
 		.len = sizeof(struct cifsd_startup_shutdown),
 	},
-
 	[CIFSD_EVENT_LOGIN_REQUEST] = {
 		.len = sizeof(struct cifsd_login_request),
 	},
-
 	[CIFSD_EVENT_LOGIN_RESPONSE] = {
 		.len = sizeof(struct cifsd_login_response),
 	},
-
 	[CIFSD_EVENT_SHARE_CONFIG_REQUEST] = {
 		.len = sizeof(struct cifsd_share_config_request),
 	},
-
 	[CIFSD_EVENT_SHARE_CONFIG_RESPONSE] = {
 		.len = sizeof(struct cifsd_share_config_response),
 	},
-
 	[CIFSD_EVENT_TREE_CONNECT_REQUEST] = {
 		.len = sizeof(struct cifsd_tree_connect_request),
 	},
-
 	[CIFSD_EVENT_TREE_CONNECT_RESPONSE] = {
 		.len = sizeof(struct cifsd_tree_connect_response),
 	},
-
 	[CIFSD_EVENT_TREE_DISCONNECT_REQUEST] = {
 		.len = sizeof(struct cifsd_tree_disconnect_request),
 	},
-
+	[CIFSD_RPC_COMMAND_REQUEST] = {
+		.len = sizeof(struct cifsd_rpc_command),
+	},
+	[CIFSD_RPC_COMMAND_RESPONSE] = {
+		.len = sizeof(struct cifsd_rpc_command),
+	},
 	[CIFSD_EVENT_LOGOUT_REQUEST] = {
 		.len = sizeof(struct cifsd_logout_request),
 	},
@@ -195,6 +189,16 @@ static const struct genl_ops cifsd_genl_ops[] = {
 	{
 		.cmd	= CIFSD_EVENT_TREE_DISCONNECT_REQUEST,
 		.doit	= handle_unsupported_event,
+		.policy = cifsd_nl_policy,
+	},
+	{
+		.cmd	= CIFSD_RPC_COMMAND_REQUEST,
+		.doit	= handle_unsupported_event,
+		.policy = cifsd_nl_policy,
+	},
+	{
+		.cmd	= CIFSD_RPC_COMMAND_RESPONSE,
+		.doit	= handle_generic_event,
 		.policy = cifsd_nl_policy,
 	},
 	{
