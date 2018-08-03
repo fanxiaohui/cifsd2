@@ -572,7 +572,6 @@ struct cifsd_rpc_command *cifsd_rpc_open(struct cifsd_session *sess,
 	req->payload_sz = 0;
 
 	resp = ipc_msg_send_request(msg, req->handle);
-	ipc_msg_handle_free(req->handle);
 	ipc_msg_free(msg);
 	return resp;
 }
@@ -596,7 +595,6 @@ struct cifsd_rpc_command *cifsd_rpc_close(struct cifsd_session *sess,
 	req->payload_sz = 0;
 
 	resp = ipc_msg_send_request(msg, req->handle);
-	ipc_msg_handle_free(req->handle);
 	ipc_msg_free(msg);
 	return resp;
 }
