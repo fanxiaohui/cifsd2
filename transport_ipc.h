@@ -46,6 +46,11 @@ cifsd_ipc_share_config_request(const char *name);
 int cifsd_ipc_id_alloc(void);
 void cifsd_rpc_id_free(int handle);
 
+struct cifsd_rpc_command *cifsd_rpc_open(struct cifsd_session *sess,
+					 int handle);
+struct cifsd_rpc_command *cifsd_rpc_close(struct cifsd_session *sess,
+					  int handle);
+
 void cifsd_ipc_release(void);
 int cifsd_ipc_init(void);
 
