@@ -35,6 +35,7 @@ static DECLARE_RWSEM(sessions_table_lock);
 
 struct cifsd_session_rpc {
 	int			id;
+	unsigned int		method;
 	struct list_head	list;
 };
 
@@ -72,9 +73,69 @@ static void cifsd_session_rpc_clear_list(struct cifsd_session *sess)
 				   list);
 
 		list_del(&entry->list);
-		cifsd_ipc_free_rpc_handle(entry->id);
+		cifsd_rpc_id_free(entry->id);
 		cifsd_free(entry);
 	}
+}
+
+static int __rpc_method(char *rpc_name)
+{
+	if (!strcmp(rpc_name, "\\srvsvc") || !strcmp(rpc_name, "srvsvc"))
+		return CIFSD_RPC_COMMAND_SRVSVC_METHOD_INVOKE;
+
+	if (!strcmp(rpc_name, "\\wkssvc") || !strcmp(rpc_name, "wkssvc"))
+		return CIFSD_RPC_COMMAND_WKSSVC_METHOD_INVOKE;
+
+	return 0;
+}
+
+int cifsd_session_rpc_open(struct cifsd_session *sess, char *rpc_name)
+{
+	struct cifsd_session_rpc *entry;
+	int method;
+
+	method = __rpc_method(rpc_name);
+	if (!method)
+		return -EINVAL;
+
+	entry = cifsd_alloc(sizeof(struct cifsd_session_rpc));
+	if (!entry)
+		return -EINVAL;
+
+	entry->method = method;
+	entry->id = cifsd_ipc_id_alloc();
+	if (entry->id < 0) {
+		kfree(entry);
+		return -EINVAL;
+	}
+
+	list_add(&entry->list, &sess->rpc_handle_list);
+	return entry->id;
+}
+
+void cifsd_session_rpc_close(struct cifsd_session *sess, int id)
+{
+	struct cifsd_session_rpc *entry;
+
+	list_for_each_entry(entry, &sess->rpc_handle_list, list) {
+		if (entry->id == id) {
+			cifsd_rpc_id_free(id);
+			list_del(&entry->list);
+			cifsd_free(entry);
+			break;
+		}
+	}
+}
+
+int cifsd_session_rpc_method(struct cifsd_session *sess, int id)
+{
+	struct cifsd_session_rpc *entry;
+
+	list_for_each_entry(entry, &sess->rpc_handle_list, list) {
+		if (entry->id == id)
+			return entry->method;
+	}
+	return 0;
 }
 
 void cifsd_session_destroy(struct cifsd_session *sess)

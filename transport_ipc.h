@@ -22,7 +22,6 @@
 #include <linux/wait.h>
 #include "cifsd_server.h"  /* FIXME */
 
-
 struct cifsd_login_response *
 cifsd_ipc_login_request(const char *account);
 
@@ -44,8 +43,8 @@ struct cifsd_heartbeat *cifsd_ipc_heartbeat_request(void);
 struct cifsd_share_config_response *
 cifsd_ipc_share_config_request(const char *name);
 
-int cifsd_ipc_rpc_handle_alloc(void);
-void cifsd_ipc_free_rpc_handle(int handle);
+int cifsd_ipc_id_alloc(void);
+void cifsd_rpc_id_free(int handle);
 
 void cifsd_ipc_release(void);
 int cifsd_ipc_init(void);

@@ -38,7 +38,6 @@
 
 #define IPC_MSG_HASH_BITS	3
 static DEFINE_HASHTABLE(ipc_msg_table, IPC_MSG_HASH_BITS);
-
 static DECLARE_RWSEM(ipc_msg_table_lock);
 
 struct cifsd_ida *ida;
@@ -347,11 +346,6 @@ static int handle_generic_event(struct sk_buff *skb, struct genl_info *info)
 	return handle_response(type, payload, sz);
 }
 
-static int next_ipc_msg_handle(void)
-{
-	return cifds_acquire_id(ida);
-}
-
 static int ipc_msg_send(struct cifsd_ipc_msg *msg)
 {
 	struct genlmsghdr *nlh;
@@ -429,7 +423,7 @@ struct cifsd_login_response *cifsd_ipc_login_request(const char *account)
 
 	msg->type = CIFSD_EVENT_LOGIN_REQUEST;
 	req = CIFSD_IPC_MSG_PAYLOAD(msg);
-	req->handle = next_ipc_msg_handle();
+	req->handle = cifds_acquire_id(ida);
 	strncpy(req->account, account, sizeof(req->account) - 1);
 
 	resp = ipc_msg_send_request(msg, req->handle);
@@ -455,7 +449,7 @@ cifsd_ipc_tree_connect_request(struct cifsd_session *sess,
 	msg->type = CIFSD_EVENT_TREE_CONNECT_REQUEST;
 	req = CIFSD_IPC_MSG_PAYLOAD(msg);
 
-	req->handle = next_ipc_msg_handle();
+	req->handle = cifds_acquire_id(ida);
 	req->account_flags = sess->user->flags;
 	req->session_id = sess->id;
 	req->connect_id = tree_conn->id;
@@ -525,7 +519,7 @@ struct cifsd_heartbeat *cifsd_ipc_heartbeat_request(void)
 
 	msg->type = CIFSD_EVENT_HEARTBEAT_REQUEST;
 	out = CIFSD_IPC_MSG_PAYLOAD(msg);
-	out->handle = next_ipc_msg_handle();
+	out->handle = cifds_acquire_id(ida);
 
 	in = ipc_msg_send_request(msg, out->handle);
 	ipc_msg_handle_free(out->handle);
@@ -546,7 +540,7 @@ cifsd_ipc_share_config_request(const char *name)
 
 	msg->type = CIFSD_EVENT_SHARE_CONFIG_REQUEST;
 	req = CIFSD_IPC_MSG_PAYLOAD(msg);
-	req->handle = next_ipc_msg_handle();
+	req->handle = cifds_acquire_id(ida);
 	strncpy(req->share_name, name, sizeof(req->share_name) - 1);
 
 	resp = ipc_msg_send_request(msg, req->handle);
@@ -555,23 +549,14 @@ cifsd_ipc_share_config_request(const char *name)
 	return resp;
 }
 
-int cifsd_ipc_rpc_handle_alloc(void)
+int cifsd_ipc_id_alloc(void)
 {
-	return next_ipc_msg_handle();
+	return cifds_acquire_id(ida);
 }
 
-void cifsd_ipc_free_rpc_handle(int handle)
+void cifsd_rpc_id_free(int handle)
 {
-	struct ipc_msg_table_entry *entry;
-
-	down_write(&ipc_msg_table_lock);
-	hash_for_each_possible(ipc_msg_table, entry, ipc_table_hlist, handle) {
-		if (handle != entry->handle)
-			continue;
-		hash_del(&entry->ipc_table_hlist);
-		break;
-	}
-	up_write(&ipc_msg_table_lock);
+	cifds_release_id(ida, handle);
 }
 
 void cifsd_ipc_release(void)

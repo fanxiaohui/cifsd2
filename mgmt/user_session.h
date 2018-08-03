@@ -107,6 +107,10 @@ struct cifsd_session *cifsd_session_lookup(unsigned long long id);
 int cifsd_acquire_tree_conn_id(struct cifsd_session *sess);
 void cifsd_release_tree_conn_id(struct cifsd_session *sess, int id);
 
+int cifsd_session_rpc_open(struct cifsd_session *sess, char *rpc_name);
+void cifsd_session_rpc_close(struct cifsd_session *sess, int id);
+int cifsd_session_rpc_method(struct cifsd_session *sess, int id);
+
 int cifsd_init_session_table(void);
 void cifsd_free_session_table(void);
 
