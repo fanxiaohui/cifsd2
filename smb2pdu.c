@@ -5653,26 +5653,17 @@ static int smb2_write_pipe(struct cifsd_work *work)
 {
 	struct smb2_write_req *req;
 	struct smb2_write_rsp *rsp;
+	struct cifsd_rpc_command *rpc_resp;
 	uint64_t id = 0;
 	int err = 0, ret = 0;
 	char *data_buf;
 	size_t length;
-	struct cifsd_uevent *ev;
-	struct cifsd_pipe *pipe_desc;
 
 	req = (struct smb2_write_req *)REQUEST_BUF(work);
 	rsp = (struct smb2_write_rsp *)RESPONSE_BUF(work);
 
 	length = le32_to_cpu(req->Length);
 	id = le64_to_cpu(req->VolatileFileId);
-	pipe_desc = get_pipe_desc(work->sess, id);
-
-	if (!pipe_desc) {
-		cifsd_debug("Pipe not opened or invalid in Pipe id\n");
-		rsp->hdr.Status = NT_STATUS_FILE_CLOSED;
-		smb2_set_err_rsp(work);
-		return ret;
-	}
 
 	if (le16_to_cpu(req->DataOffset) ==
 			(offsetof(struct smb2_write_req, Buffer) - 4)) {
@@ -5692,25 +5683,15 @@ static int smb2_write_pipe(struct cifsd_work *work)
 				le16_to_cpu(req->DataOffset));
 	}
 
-	ret = cifsd_sendmsg(work->sess, CIFSD_KEVENT_WRITE_PIPE,
-			pipe_desc->pipe_type, length, data_buf, 0);
-	if (ret)
-		cifsd_err("failed to send event, err %d\n", ret);
-	else {
-		ev = &pipe_desc->ev;
-		ret = ev->error;
-		if (ret == -EOPNOTSUPP) {
-			rsp->hdr.Status = NT_STATUS_NOT_SUPPORTED;
-			smb2_set_err_rsp(work);
-			return ret;
-		} else if (ret) {
+	rpc_resp = cifsd_rpc_write(work->sess, id, data_buf, length);
+	if (rpc_resp) {
+		if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
 			rsp->hdr.Status = NT_STATUS_INVALID_HANDLE;
 			smb2_set_err_rsp(work);
 			return ret;
 		}
-
-		length = ev->u.w_pipe_rsp.write_count;
-		work->sess->ev_state = NETLINK_REQ_COMPLETED;
+	} else {
+		pr_err("RPC: failed to write to RPC pipe\n");
 	}
 
 	rsp->StructureSize = cpu_to_le16(17);
