@@ -599,6 +599,55 @@ struct cifsd_rpc_command *cifsd_rpc_close(struct cifsd_session *sess,
 	return resp;
 }
 
+struct cifsd_rpc_command *cifsd_rpc_write(struct cifsd_session *sess,
+					  int handle,
+					  void *payload,
+					  size_t payload_sz)
+{
+	struct cifsd_ipc_msg *msg;
+	struct cifsd_rpc_command *req;
+	struct cifsd_rpc_command *resp;
+
+	msg = ipc_msg_alloc(sizeof(struct cifsd_rpc_command) + payload_sz);
+	if (!msg)
+		return NULL;
+
+	msg->type = CIFSD_RPC_COMMAND_REQUEST;
+	req = CIFSD_IPC_MSG_PAYLOAD(msg);
+	req->handle = handle;
+	req->flags = cifsd_session_rpc_method(sess, handle);
+	req->flags |= CIFSD_RPC_COMMAND_WRITE;
+	req->payload_sz = payload_sz;
+	memcpy(req->payload, payload, payload_sz);
+
+	resp = ipc_msg_send_request(msg, req->handle);
+	ipc_msg_free(msg);
+	return resp;
+}
+
+struct cifsd_rpc_command *cifsd_rpc_read(struct cifsd_session *sess,
+					 int handle)
+{
+	struct cifsd_ipc_msg *msg;
+	struct cifsd_rpc_command *req;
+	struct cifsd_rpc_command *resp;
+
+	msg = ipc_msg_alloc(sizeof(struct cifsd_rpc_command));
+	if (!msg)
+		return NULL;
+
+	msg->type = CIFSD_RPC_COMMAND_REQUEST;
+	req = CIFSD_IPC_MSG_PAYLOAD(msg);
+	req->handle = handle;
+	req->flags = cifsd_session_rpc_method(sess, handle);
+	req->flags |= CIFSD_RPC_COMMAND_READ;
+	req->payload_sz = 0;
+
+	resp = ipc_msg_send_request(msg, req->handle);
+	ipc_msg_free(msg);
+	return resp;
+}
+
 int cifsd_ipc_id_alloc(void)
 {
 	return cifds_acquire_id(ida);
