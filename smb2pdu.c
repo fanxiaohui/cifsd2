@@ -33,6 +33,7 @@
 
 #include "buffer_pool.h"
 #include "transport_tcp.h"
+#include "transport_ipc.h"
 #include "vfs.h"
 #include "fh.h"
 
@@ -5486,45 +5487,34 @@ err_out:
  */
 static int smb2_read_pipe(struct cifsd_work *work)
 {
-	int ret = 0, nbytes = 0;
+	int nbytes = 0;
 	char *data_buf;
 	uint64_t id;
+	unsigned int read_len;
+	struct cifsd_rpc_command *rpc_resp;
 	struct smb2_read_req *req;
 	struct smb2_read_rsp *rsp;
-	unsigned int read_len;
-	struct cifsd_uevent *ev;
-	struct cifsd_pipe *pipe_desc;
+
 	req = (struct smb2_read_req *)REQUEST_BUF(work);
 	rsp = (struct smb2_read_rsp *)RESPONSE_BUF(work);
 
 	read_len = le32_to_cpu(req->Length);
 	data_buf = (char *)(rsp->Buffer);
 	id = le64_to_cpu(req->VolatileFileId);
-	pipe_desc = get_pipe_desc(work->sess, id);
 
-	if (!pipe_desc) {
-		cifsd_debug("Pipe not opened or invalid in Pipe id\n");
-		rsp->hdr.Status = NT_STATUS_FILE_CLOSED;
-		smb2_set_err_rsp(work);
-		return ret;
-	}
-
-	ret = cifsd_sendmsg(work->sess, CIFSD_KEVENT_READ_PIPE,
-			pipe_desc->pipe_type, 0, NULL, read_len);
-	if (ret)
-		cifsd_err("failed to send event, err %d\n", ret);
-	else {
-		ev = &pipe_desc->ev;
-		nbytes = ev->u.r_pipe_rsp.read_count;
-		if (ev->error < 0 || !nbytes) {
-			cifsd_err("Pipe data not present\n");
+	rpc_resp = cifsd_rpc_read(work->sess, id);
+	if (rpc_resp) {
+		if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
 			rsp->hdr.Status = NT_STATUS_UNEXPECTED_IO_ERROR;
 			smb2_set_err_rsp(work);
 			return -EINVAL;
 		}
 
-		memcpy(data_buf, pipe_desc->rsp_buf, nbytes);
-		work->sess->ev_state = NETLINK_REQ_COMPLETED;
+		memcpy(data_buf, rpc_resp->payload, rpc_resp->payload_sz);
+		nbytes = rpc_resp->payload_sz;
+		cifsd_free(rpc_resp);
+	} else {
+		pr_err("RPC: no pipe RPC read() data\n");
 	}
 
 	rsp->StructureSize = cpu_to_le16(17);
