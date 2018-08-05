@@ -5690,6 +5690,7 @@ static int smb2_write_pipe(struct cifsd_work *work)
 			smb2_set_err_rsp(work);
 			return ret;
 		}
+		cifsd_free(rpc_resp);
 	} else {
 		pr_err("RPC: failed to write to RPC pipe\n");
 	}
@@ -6353,8 +6354,7 @@ int smb2_ioctl(struct cifsd_work *work)
 	uint64_t id = -1;
 	int ret = 0;
 	struct cifsd_tcp_conn *conn = work->conn;
-	struct cifsd_uevent *ev;
-	struct cifsd_pipe *pipe_desc;
+	struct cifsd_rpc_command *rpc_resp;
 
 	req = (struct smb2_ioctl_req *)REQUEST_BUF(work);
 	rsp = (struct smb2_ioctl_rsp *)RESPONSE_BUF(work);
@@ -6418,47 +6418,31 @@ int smb2_ioctl(struct cifsd_work *work)
 			goto out;
 		}
 
-		pipe_desc = get_pipe_desc(work->sess, id);
-		if (!pipe_desc) {
-			cifsd_debug("Pipe not opened or invalid in Pipe id\n");
-			goto out;
-		}
-
-		ret = cifsd_sendmsg(work->sess, CIFSD_KEVENT_IOCTL_PIPE,
-				pipe_desc->pipe_type,
-				le32_to_cpu(req->inputcount), data_buf,
-				out_buf_len);
-		if (ret)
-			cifsd_err("failed to send event, err %d\n", ret);
-		else {
-			ev = &pipe_desc->ev;
-			nbytes = ev->u.i_pipe_rsp.data_count;
-			ret = ev->error;
-			if (ret == -EOPNOTSUPP) {
-				rsp->hdr.Status =
-					NT_STATUS_NOT_SUPPORTED;
-				goto out;
-			} else if (ret) {
-				rsp->hdr.Status =
-					NT_STATUS_INVALID_PARAMETER;
+		rpc_resp = cifsd_rpc_ioctl(work->sess, id,
+					   data_buf, out_buf_len);
+		if (rpc_resp) {
+			if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
+				rsp->hdr.Status = NT_STATUS_INVALID_PARAMETER;
 				goto out;
 			}
 
-			if (nbytes > out_buf_len) {
-				rsp->hdr.Status =
-					NT_STATUS_BUFFER_OVERFLOW;
+			if (rpc_resp->payload_sz > out_buf_len) {
+				rsp->hdr.Status = NT_STATUS_BUFFER_OVERFLOW;
 				nbytes = out_buf_len;
-			} else if (!nbytes) {
-				cifsd_err("Pipe data not present\n");
-				rsp->hdr.Status = NT_STATUS_UNEXPECTED_IO_ERROR;
+			}
+
+			if (!rpc_resp->payload_sz) {
+				rsp->hdr.Status =
+					NT_STATUS_UNEXPECTED_IO_ERROR;
 				goto out;
 			}
 
-			memcpy((char *)rsp->Buffer, pipe_desc->rsp_buf,
+			memcpy((char *)rsp->Buffer, rpc_resp->payload,
 					nbytes);
-			work->sess->ev_state = NETLINK_REQ_COMPLETED;
+			cifsd_free(rpc_resp);
+		} else {
+			pr_err("No RPC IOCTL reply\n");
 		}
-
 		break;
 	case FSCTL_VALIDATE_NEGOTIATE_INFO:
 	{
