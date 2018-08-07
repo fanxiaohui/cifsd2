@@ -3615,7 +3615,7 @@ static int smb2_get_info_file_pipe(struct cifsd_session *sess,
 	 */
 	id = le64_to_cpu(req->VolatileFileId);
 	if (!cifsd_session_rpc_method(sess, id)) {
-		pr_err("Unknown RPC pipe id: %d\n", id);
+		pr_err("Unknown RPC pipe id: %llu\n", id);
 		return -ENOENT;
 	}
 
