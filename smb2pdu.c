@@ -5685,6 +5685,10 @@ static int smb2_write_pipe(struct cifsd_work *work)
 
 	rpc_resp = cifsd_rpc_write(work->sess, id, data_buf, length);
 	if (rpc_resp) {
+		if (rpc_resp->flags == CIFSD_RPC_COMMAND_ERROR_NOTIMPLEMENTED) {
+			 rsp->hdr.Status = NT_STATUS_NOT_SUPPORTED;
+			 goto out;
+		}
 		if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
 			rsp->hdr.Status = NT_STATUS_INVALID_HANDLE;
 			smb2_set_err_rsp(work);
@@ -6419,13 +6423,20 @@ int smb2_ioctl(struct cifsd_work *work)
 		}
 
 		rpc_resp = cifsd_rpc_ioctl(work->sess, id,
-					   data_buf, out_buf_len);
+					   data_buf,
+					   le32_to_cpu(req->inputcount));
 		if (rpc_resp) {
+			if (rpc_resp->flags == CIFSD_RPC_COMMAND_ERROR_NOTIMPLEMENTED) {
+				rsp->hdr.Status = NT_STATUS_NOT_SUPPORTED;
+				goto out;
+			}
+
 			if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
 				rsp->hdr.Status = NT_STATUS_INVALID_PARAMETER;
 				goto out;
 			}
 
+			nbytes = rpc_resp->payload_sz;
 			if (rpc_resp->payload_sz > out_buf_len) {
 				rsp->hdr.Status = NT_STATUS_BUFFER_OVERFLOW;
 				nbytes = out_buf_len;
@@ -6441,7 +6452,7 @@ int smb2_ioctl(struct cifsd_work *work)
 					nbytes);
 			cifsd_free(rpc_resp);
 		} else {
-			pr_err("No RPC IOCTL reply\n");
+			pr_err("No RPC IOCTL pipe reply\n");
 		}
 		break;
 	case FSCTL_VALIDATE_NEGOTIATE_INFO:
