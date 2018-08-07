@@ -6356,7 +6356,6 @@ int smb2_ioctl(struct cifsd_work *work)
 	int out_buf_len;
 	char *data_buf;
 	uint64_t id = -1;
-	int ret = 0;
 	struct cifsd_tcp_conn *conn = work->conn;
 	struct cifsd_rpc_command *rpc_resp;
 
