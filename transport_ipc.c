@@ -119,14 +119,12 @@ static const struct nla_policy cifsd_nl_policy[CIFSD_EVENT_MAX] = {
 	[CIFSD_EVENT_TREE_DISCONNECT_REQUEST] = {
 		.len = sizeof(struct cifsd_tree_disconnect_request),
 	},
-	[CIFSD_RPC_COMMAND_REQUEST] = {
-		.len = sizeof(struct cifsd_rpc_command),
-	},
-	[CIFSD_RPC_COMMAND_RESPONSE] = {
-		.len = sizeof(struct cifsd_rpc_command),
-	},
 	[CIFSD_EVENT_LOGOUT_REQUEST] = {
 		.len = sizeof(struct cifsd_logout_request),
+	},
+	[CIFSD_RPC_COMMAND_REQUEST] = {
+	},
+	[CIFSD_RPC_COMMAND_RESPONSE] = {
 	},
 };
 
@@ -192,6 +190,11 @@ static const struct genl_ops cifsd_genl_ops[] = {
 		.policy = cifsd_nl_policy,
 	},
 	{
+		.cmd	= CIFSD_EVENT_LOGOUT_REQUEST,
+		.doit	= handle_unsupported_event,
+		.policy = cifsd_nl_policy,
+	},
+	{
 		.cmd	= CIFSD_RPC_COMMAND_REQUEST,
 		.doit	= handle_unsupported_event,
 		.policy = cifsd_nl_policy,
@@ -199,11 +202,6 @@ static const struct genl_ops cifsd_genl_ops[] = {
 	{
 		.cmd	= CIFSD_RPC_COMMAND_RESPONSE,
 		.doit	= handle_generic_event,
-		.policy = cifsd_nl_policy,
-	},
-	{
-		.cmd	= CIFSD_EVENT_LOGOUT_REQUEST,
-		.doit	= handle_unsupported_event,
 		.policy = cifsd_nl_policy,
 	},
 };
@@ -252,12 +250,7 @@ static int handle_response(int type, void *payload, size_t sz)
 		if (handle != entry->handle)
 			continue;
 
-		entry->response = cifsd_alloc(sz);
-		if (!entry->response) {
-			ret = -ENOMEM;
-			break;
-		}
-
+		entry->response = NULL;
 		/*
 		 * Response message type value should be equal to
 		 * request message type + 1.
@@ -265,6 +258,12 @@ static int handle_response(int type, void *payload, size_t sz)
 		if (entry->type + 1 != type) {
 			pr_err("Waiting for IPC type %d, got %d. Ignore.\n",
 				entry->type + 1, type);
+		}
+
+		entry->response = cifsd_alloc(sz);
+		if (!entry->response) {
+			ret = -ENOMEM;
+			break;
 		}
 
 		memcpy(entry->response, payload, sz);
@@ -411,7 +410,6 @@ out:
 	down_write(&ipc_msg_table_lock);
 	hash_del(&entry.ipc_table_hlist);
 	up_write(&ipc_msg_table_lock);
-
 	return entry.response;
 }
 
