@@ -28,6 +28,7 @@
 #include "oplock.h"
 #include "buffer_pool.h"
 #include "transport_tcp.h"
+#include "transport_ipc.h"
 #include "vfs.h"
 
 #include "mgmt/user_config.h"
@@ -2824,6 +2825,7 @@ out:
  */
 static int smb_close_pipe(struct cifsd_work *work)
 {
+	CLOSE_REQ *req = (CLOSE_REQ *)REQUEST_BUF(work);
 	int id;
 
 	id = le16_to_cpu(req->FileID);
@@ -2887,48 +2889,36 @@ static int smb_read_andx_pipe(struct cifsd_work *work)
 {
 	READ_REQ *req = (READ_REQ *)REQUEST_BUF(work);
 	READ_RSP *rsp = (READ_RSP *)RESPONSE_BUF(work);
-	struct cifsd_pipe *pipe_desc;
+	struct cifsd_rpc_command *rpc_resp;
 	char *data_buf;
 	int ret = 0, nbytes = 0;
 	int id;
 	unsigned int count;
 	unsigned int rsp_buflen = MAX_CIFS_SMALL_BUFFER_SIZE - sizeof(READ_RSP);
-	struct cifsd_uevent *ev;
+
 	rsp_buflen = min((unsigned int)
 			(MAX_CIFS_SMALL_BUFFER_SIZE - sizeof(READ_RSP)),
 			rsp_buflen);
 
-	id = le16_to_cpu(req->Fid);
-	pipe_desc = get_pipe_desc(work->sess, id);
-	if (!pipe_desc) {
-		cifsd_debug("Pipe not opened or invalid in Pipe id\n");
-		if (pipe_desc)
-			cifsd_debug("Incoming id = %d opened pipe id = %d\n",
-					id, pipe_desc->id);
-		rsp->hdr.Status.CifsError = NT_STATUS_INVALID_HANDLE;
-		return ret;
-	}
-
 	count = min_t(unsigned int, le16_to_cpu(req->MaxCount), rsp_buflen);
 	data_buf = (char *) (&rsp->ByteCount) + sizeof(rsp->ByteCount);
 
-	ret = cifsd_sendmsg(work->sess, CIFSD_KEVENT_READ_PIPE,
-			pipe_desc->pipe_type,
-			0, NULL, rsp_buflen);
-	if (ret)
-		cifsd_err("failed to send event, err %d\n", ret);
-	else {
-		ev = &pipe_desc->ev;
-		nbytes = ev->u.r_pipe_rsp.read_count;
-		if (ev->error < 0 || !nbytes) {
-			cifsd_debug("Read bytes zero from pipe\n");
+	id = le16_to_cpu(req->Fid);
+	rpc_resp = cifsd_rpc_read(work->sess, id);
+	if (rpc_resp) {
+		if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK ||
+				!rpc_resp->payload_sz) {
 			rsp->hdr.Status.CifsError =
 				NT_STATUS_UNEXPECTED_IO_ERROR;
+			cifsd_free(rpc_resp);
 			return -EINVAL;
 		}
 
-		memcpy(data_buf, pipe_desc->rsp_buf, nbytes);
-		work->sess->ev_state = NETLINK_REQ_COMPLETED;
+		nbytes = rpc_resp->payload_sz;
+		memcpy(data_buf, rpc_resp->payload, rpc_resp->payload_sz);
+		cifsd_free(rpc_resp);
+	} else {
+		pr_err("Unable to send RPC command\n");
 	}
 
 	rsp->hdr.Status.CifsError = NT_STATUS_OK;
