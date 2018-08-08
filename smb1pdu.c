@@ -6616,9 +6616,7 @@ static int query_file_info_pipe(struct cifsd_work *work)
 	struct smb_trans2_req *req = (struct smb_trans2_req *)REQUEST_BUF(work);
 	TRANSACTION2_QFI_REQ_PARAMS *req_params;
 	FILE_STANDARD_INFO *standard_info;
-	struct cifsd_pipe *pipe_desc;
 	char *ptr;
-	int id;
 
 	req_params = (TRANSACTION2_QFI_REQ_PARAMS *)(REQUEST_BUF(work) +
 			req->ParameterOffset + 4);
@@ -6628,20 +6626,6 @@ static int query_file_info_pipe(struct cifsd_work *work)
 				req_params->InformationLevel);
 		rsp_hdr->Status.CifsError = NT_STATUS_NOT_SUPPORTED;
 		return -EOPNOTSUPP;
-	}
-
-	id = cpu_to_le16(req_params->Fid);
-	pipe_desc = get_pipe_desc(work->sess, id);
-
-	/* Windows can sometime send query file info request on
-	   pipe without opening it, checking error condition here */
-	if (!pipe_desc) {
-		cifsd_debug("Pipe not opened or invalid in Pipe id\n");
-		if (pipe_desc)
-			cifsd_debug("Incoming id = %d opened pipe id = %d\n",
-					id, pipe_desc->id);
-		rsp->hdr.Status.CifsError = NT_STATUS_INVALID_HANDLE;
-		return 0;
 	}
 
 	cifsd_debug("SMB_QUERY_FILE_STANDARD_INFO\n");
