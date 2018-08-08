@@ -672,6 +672,31 @@ struct cifsd_rpc_command *cifsd_rpc_ioctl(struct cifsd_session *sess,
 	return resp;
 }
 
+struct cifsd_rpc_command *cifsd_rpc_rap(struct cifsd_session *sess,
+					void *payload,
+					size_t payload_sz)
+{
+	struct cifsd_ipc_msg *msg;
+	struct cifsd_rpc_command *req;
+	struct cifsd_rpc_command *resp;
+
+	msg = ipc_msg_alloc(sizeof(struct cifsd_rpc_command) + payload_sz + 1);
+	if (!msg)
+		return NULL;
+
+	msg->type = CIFSD_RPC_COMMAND_REQUEST;
+	req = CIFSD_IPC_MSG_PAYLOAD(msg);
+	req->handle = cifds_acquire_id(ida);
+	req->flags = CIFSD_RPC_COMMAND_RAP;
+	req->payload_sz = payload_sz;
+	memcpy(req->payload, payload, payload_sz);
+
+	resp = ipc_msg_send_request(msg, req->handle);
+	ipc_msg_handle_free(req->handle);
+	ipc_msg_free(msg);
+	return resp;
+}
+
 int cifsd_ipc_id_alloc(void)
 {
 	return cifds_acquire_id(ida);
