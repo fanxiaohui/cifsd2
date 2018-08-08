@@ -2216,7 +2216,6 @@ static int create_andx_pipe(struct cifsd_work *work)
 {
 	OPEN_REQ *req = (OPEN_REQ *)REQUEST_BUF(work);
 	OPEN_EXT_RSP *rsp = (OPEN_EXT_RSP *)RESPONSE_BUF(work);
-	unsigned int pipe_type;
 	char *name;
 	int rc = 0;
 	__u16 fid;
@@ -2234,26 +2233,10 @@ static int create_andx_pipe(struct cifsd_work *work)
 		goto out;
 	}
 
-	pipe_type = get_pipe_type(name);
-	if (pipe_type == INVALID_PIPE) {
-		cifsd_debug("pipe %s not supported\n", name);
-		rc = -EOPNOTSUPP;
-		goto out;
-	}
-
-	/* Assigning temporary fid for pipe */
-	rc = get_pipe_id(work->sess, pipe_type);
+	rc = cifsd_session_rpc_open(work->sess, name);
 	if (rc < 0)
 		goto out;
-	else
-		fid = rc;
-
-	rc = cifsd_sendmsg(work->sess,
-			CIFSD_KEVENT_CREATE_PIPE, pipe_type, 0, NULL, 0);
-	if (rc) {
-		cifsd_err("failed to send event, err %d\n", rc);
-		goto out;
-	}
+	fid = rc;
 
 	rsp->hdr.WordCount = 42;
 	rsp->AndXCommand = cpu_to_le16(0xff);
@@ -2841,30 +2824,11 @@ out:
  */
 static int smb_close_pipe(struct cifsd_work *work)
 {
-	CLOSE_REQ *req = (CLOSE_REQ *)REQUEST_BUF(work);
-	CLOSE_RSP *rsp = (CLOSE_RSP *)RESPONSE_BUF(work);
-	struct cifsd_pipe *pipe_desc;
 	int id;
-	int rc = 0;
 
 	id = le16_to_cpu(req->FileID);
-	pipe_desc = get_pipe_desc(work->sess, id);
-	if (!pipe_desc) {
-		cifsd_debug("Pipe not opened or invalid in Pipe id\n");
-		if (pipe_desc)
-			cifsd_debug("Incoming id = %d opened pipe id = %d\n",
-					id, pipe_desc->id);
-		rsp->hdr.Status.CifsError = NT_STATUS_INVALID_HANDLE;
-		return -EINVAL;
-	}
-
-	rc = cifsd_sendmsg(work->sess,
-			CIFSD_KEVENT_DESTROY_PIPE, pipe_desc->pipe_type,
-			0, NULL, 0);
-	if (rc)
-		cifsd_err("failed to send event, err %d\n", rc);
-	rc = close_pipe_id(work->sess, pipe_desc->pipe_type);
-	return rc;
+	cifsd_session_rpc_close(work->sess, id);
+	return 0;
 }
 
 /**
