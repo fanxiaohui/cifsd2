@@ -606,7 +606,7 @@ struct cifsd_rpc_command *cifsd_rpc_write(struct cifsd_session *sess,
 	struct cifsd_rpc_command *req;
 	struct cifsd_rpc_command *resp;
 
-	msg = ipc_msg_alloc(sizeof(struct cifsd_rpc_command) + payload_sz);
+	msg = ipc_msg_alloc(sizeof(struct cifsd_rpc_command) + payload_sz + 1);
 	if (!msg)
 		return NULL;
 
@@ -655,7 +655,7 @@ struct cifsd_rpc_command *cifsd_rpc_ioctl(struct cifsd_session *sess,
 	struct cifsd_rpc_command *req;
 	struct cifsd_rpc_command *resp;
 
-	msg = ipc_msg_alloc(sizeof(struct cifsd_rpc_command) + payload_sz);
+	msg = ipc_msg_alloc(sizeof(struct cifsd_rpc_command) + payload_sz + 1);
 	if (!msg)
 		return NULL;
 
