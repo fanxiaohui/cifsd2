@@ -1970,52 +1970,6 @@ out:
 }
 
 /**
- * alloc_lanman_pipe_desc() - allocate lanman pipe buffers
- * @sess:	session info
- *
- * Return:	0 on success, otherwise error
- */
-static int alloc_lanman_pipe_desc(struct cifsd_session *sess)
-{
-	struct cifsd_pipe *pipe_desc;
-
-	if (unlikely(!sess))
-		return -EINVAL;
-
-	sess->pipe_desc[LANMAN] = kzalloc(sizeof(struct cifsd_pipe),
-			GFP_KERNEL);
-	pipe_desc = sess->pipe_desc[LANMAN];
-	if (!pipe_desc)
-		return -ENOMEM;
-
-	pipe_desc->rsp_buf = kmalloc(NETLINK_CIFSD_MAX_PAYLOAD,
-			GFP_KERNEL);
-	if (!pipe_desc->rsp_buf) {
-		kfree(pipe_desc);
-		sess->pipe_desc[LANMAN] = NULL;
-		return -ENOMEM;
-	}
-
-	pipe_desc->pipe_type = LANMAN;
-	return 0;
-}
-
-/**
- * free_lanman_pipe_desc() - free lanman pipe buffers
- * @sess:	session info
- *
- */
-static void free_lanman_pipe_desc(struct cifsd_session *sess)
-{
-	struct cifsd_pipe *pipe_desc;
-
-	pipe_desc = sess->pipe_desc[LANMAN];
-	kfree(pipe_desc->rsp_buf);
-	kfree(pipe_desc);
-	sess->pipe_desc[LANMAN] = NULL;
-}
-
-/**
  * smb_trans() - trans2 command dispatcher
  * @work:	smb work containing trans2 command
  *
@@ -2027,7 +1981,7 @@ int smb_trans(struct cifsd_work *work)
 	TRANS_REQ *req = (TRANS_REQ *)REQUEST_BUF(work);
 	TRANS_RSP *rsp = (TRANS_RSP *)RESPONSE_BUF(work);
 	TRANS_PIPE_REQ *pipe_req = (TRANS_PIPE_REQ *)REQUEST_BUF(work);
-	struct cifsd_pipe *pipe_desc;
+	struct cifsd_rpc_command *rpc_resp;
 	__u16 subcommand;
 	char *name, *pipe;
 	char *pipedata;
@@ -2038,7 +1992,6 @@ int smb_trans(struct cifsd_work *work)
 	int param_len = 0;
 	int id, buf_len;
 	int padding;
-	struct cifsd_uevent *ev;
 
 	buf_len = le16_to_cpu(req->MaxDataCount);
 	buf_len = min((int)(NETLINK_CIFSD_MAX_PAYLOAD - sizeof(TRANS_RSP)),
@@ -2091,87 +2044,64 @@ int smb_trans(struct cifsd_work *work)
 	pipedata = req->Data + str_len_uni + setup_bytes_count + padding;
 
 	if (!strncmp(pipe, "LANMAN", sizeof("LANMAN"))) {
-		if (alloc_lanman_pipe_desc(work->sess)) {
-			cifsd_err("failed to allocate memory\n");
-			rsp->hdr.Status.CifsError = NT_STATUS_NO_MEMORY;
-			kfree(name);
-			return 0;
-		}
+		rpc_resp = cifsd_rpc_rap(work->sess, pipedata,
+					 le16_to_cpu(req->TotalParameterCount));
 
-		ret = cifsd_sendmsg(work->sess,
-				CIFSD_KEVENT_LANMAN_PIPE,
-				LANMAN, le16_to_cpu(req->TotalParameterCount),
-				pipedata, buf_len);
-		if (ret) {
-			cifsd_err("failed to send event, err %d\n", ret);
-			free_lanman_pipe_desc(work->sess);
-			work->sess->ev_state = NETLINK_REQ_COMPLETED;
-			goto out;
-		}
-
-		pipe_desc = work->sess->pipe_desc[LANMAN];
-		ev = &pipe_desc->ev;
-		nbytes = ev->u.l_pipe_rsp.data_count;
-		param_len = ev->u.l_pipe_rsp.param_count;
-		if (nbytes < 0) {
-			if (nbytes == -EOPNOTSUPP)
+		if (rpc_resp) {
+			if (rpc_resp->flags == CIFSD_RPC_COMMAND_ERROR_NOTIMPLEMENTED) {
 				rsp->hdr.Status.CifsError =
 					NT_STATUS_NOT_SUPPORTED;
-			else
+				cifsd_free(rpc_resp);
+			}
+			if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
 				rsp->hdr.Status.CifsError =
 					NT_STATUS_INVALID_PARAMETER;
+			}
 
-			free_lanman_pipe_desc(work->sess);
-			work->sess->ev_state = NETLINK_REQ_COMPLETED;
+			nbytes = rpc_resp->payload_sz;
+			memcpy((char *)rsp + sizeof(TRANS_RSP),
+				rpc_resp->payload, nbytes);
+
+			cifsd_free(rpc_resp);
+			ret = 0;
+			goto resp_out;
+		} else {
+			pr_err("No RAP reply\n");
+			ret = -EINVAL;
 			goto out;
 		}
-
-		memcpy((char *)rsp + sizeof(TRANS_RSP),
-				pipe_desc->rsp_buf, nbytes);
-		free_lanman_pipe_desc(work->sess);
-		work->sess->ev_state = NETLINK_REQ_COMPLETED;
-		goto resp_out;
 	}
 
 	id = le16_to_cpu(pipe_req->fid);
-	pipe_desc = get_pipe_desc(work->sess, id);
-	if (!pipe_desc) {
-		cifsd_debug("Pipe not opened or invalid in Pipe id\n");
-		if (pipe_desc)
-			cifsd_debug("Incoming id = %d opened pipe id = %d\n",
-					id, pipe_desc->id);
-		rsp->hdr.Status.CifsError = NT_STATUS_INVALID_HANDLE;
-		goto out;
-	}
-
 	switch (subcommand) {
-
 	case TRANSACT_DCERPCCMD:
 
 		cifsd_debug("GOT TRANSACT_DCERPCCMD\n");
-		ret = cifsd_sendmsg(work->sess, CIFSD_KEVENT_IOCTL_PIPE,
-				pipe_desc->pipe_type,
-				le16_to_cpu(req->DataCount), pipedata,
-				buf_len);
-		if (ret)
-			cifsd_err("failed to send event, err %d\n", ret);
-		else {
-			ev = &pipe_desc->ev;
-			nbytes = ev->u.i_pipe_rsp.data_count;
-			ret = ev->error;
-			if (ret == -EOPNOTSUPP) {
+		ret = -EINVAL;
+		rpc_resp = cifsd_rpc_ioctl(work->sess, id, pipedata,
+					   le16_to_cpu(req->DataCount));
+		if (rpc_resp) {
+			if (rpc_resp->flags == CIFSD_RPC_COMMAND_ERROR_NOTIMPLEMENTED) {
 				rsp->hdr.Status.CifsError =
 					NT_STATUS_NOT_SUPPORTED;
-				goto out;
-			} else if (ret) {
-				rsp->hdr.Status.CifsError =
-					NT_STATUS_INVALID_PARAMETER;
+				cifsd_free(rpc_resp);
 				goto out;
 			}
 
+			if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
+				rsp->hdr.Status.CifsError =
+					NT_STATUS_INVALID_PARAMETER;
+				cifsd_free(rpc_resp);
+				goto out;
+			}
+
+			nbytes = rpc_resp->payload_sz;
 			memcpy((char *)rsp + sizeof(TRANS_RSP),
-					pipe_desc->rsp_buf, nbytes);
-			work->sess->ev_state = NETLINK_REQ_COMPLETED;
+				rpc_resp->payload, nbytes);
+			cifsd_free(rpc_resp);
+			ret = 0;
+		} else {
+			pr_err("No IOCTL reply\n");
 		}
 		break;
 
@@ -2919,6 +2849,7 @@ static int smb_read_andx_pipe(struct cifsd_work *work)
 		cifsd_free(rpc_resp);
 	} else {
 		pr_err("Unable to send RPC command\n");
+		ret = -EINVAL;
 	}
 
 	rsp->hdr.Status.CifsError = NT_STATUS_OK;
@@ -3138,6 +3069,7 @@ static int smb_write_andx_pipe(struct cifsd_work *work)
 		cifsd_free(rpc_resp);
 	} else {
 		pr_err("Failed to write to RPC pipe\n");
+		ret = -EINVAL;
 	}
 
 	rsp->hdr.Status.CifsError = NT_STATUS_OK;
