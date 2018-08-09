@@ -334,7 +334,8 @@ struct cifsd_session *lookup_session_on_server(struct cifsd_tcp_conn *conn,
 {
 	struct cifsd_session *sess;
 
-	pr_info("Remove me\n");
+	/* @FIXME: remove this crap */
+
 	sess = cifsd_session_lookup(sess_id);
 	if (!sess)
 		cifsd_err("User session(ID : %llu) not found\n", sess_id);
@@ -349,7 +350,7 @@ struct cifsd_session *lookup_session_on_server(struct cifsd_tcp_conn *conn,
  */
 struct cifsd_session *validate_sess_handle(struct cifsd_session *session)
 {
-	pr_err("REMOVE ME\n");
+	/* @FIXME: remove this crap */
 	return session;
 }
 

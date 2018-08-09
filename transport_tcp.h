@@ -91,6 +91,7 @@ struct cifsd_tcp_conn {
 	unsigned int			total_read;
 	struct list_head		tcp_conns;
 	/* smb session 1 per user */
+	/* @FIXME: remove this crap */
 	struct list_head		cifsd_sess;
 	struct task_struct		*handler;
 	unsigned long			last_active;

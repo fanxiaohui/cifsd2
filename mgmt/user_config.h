@@ -76,7 +76,7 @@ static inline unsigned int user_gid(struct cifsd_user *user)
 struct cifsd_user *cifsd_alloc_user(const char *account);
 void cifsd_free_user(struct cifsd_user *user);
 
-/* TO BE REMOVED */
+/* @FIXME Remove this crap */
 
 void put_cifsd_user(struct cifsd_user *user);
 unsigned short alloc_smb1_vuid(void);
