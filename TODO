@@ -10,3 +10,5 @@
 - remove netlink.c
 - handle RPC
 - update wildcard matching function implementation
+- remove old filter_filename_match
+- clean up protocol ID lookup
