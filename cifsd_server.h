@@ -38,8 +38,15 @@ struct cifsd_heartbeat {
 	__u32	handle;
 } __align;
 
-struct cifsd_startup_shutdown {
-	__s8	reserved[4];
+struct cifsd_startup_request {
+	__s32	signing;
+	__s8	netbios_name[16];
+	__s8	min_prot[16];
+	__s8	max_prot[16];
+} __align;
+
+struct cifsd_shutdown_request {
+	__s32	reserved;
 } __align;
 
 struct cifsd_login_request {
