@@ -2048,12 +2048,12 @@ int smb_trans(struct cifsd_work *work)
 					 le16_to_cpu(req->TotalParameterCount));
 
 		if (rpc_resp) {
-			if (rpc_resp->flags == CIFSD_RPC_COMMAND_ERROR_NOTIMPLEMENTED) {
+			if (rpc_resp->flags == CIFSD_RPC_ENOTIMPLEMENTED) {
 				rsp->hdr.Status.CifsError =
 					NT_STATUS_NOT_SUPPORTED;
 				cifsd_free(rpc_resp);
 			}
-			if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
+			if (rpc_resp->flags != CIFSD_RPC_OK) {
 				rsp->hdr.Status.CifsError =
 					NT_STATUS_INVALID_PARAMETER;
 			}
@@ -2081,14 +2081,14 @@ int smb_trans(struct cifsd_work *work)
 		rpc_resp = cifsd_rpc_ioctl(work->sess, id, pipedata,
 					   le16_to_cpu(req->DataCount));
 		if (rpc_resp) {
-			if (rpc_resp->flags == CIFSD_RPC_COMMAND_ERROR_NOTIMPLEMENTED) {
+			if (rpc_resp->flags == CIFSD_RPC_ENOTIMPLEMENTED) {
 				rsp->hdr.Status.CifsError =
 					NT_STATUS_NOT_SUPPORTED;
 				cifsd_free(rpc_resp);
 				goto out;
 			}
 
-			if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
+			if (rpc_resp->flags != CIFSD_RPC_OK) {
 				rsp->hdr.Status.CifsError =
 					NT_STATUS_INVALID_PARAMETER;
 				cifsd_free(rpc_resp);
@@ -2836,7 +2836,7 @@ static int smb_read_andx_pipe(struct cifsd_work *work)
 	id = le16_to_cpu(req->Fid);
 	rpc_resp = cifsd_rpc_read(work->sess, id);
 	if (rpc_resp) {
-		if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK ||
+		if (rpc_resp->flags != CIFSD_RPC_OK ||
 				!rpc_resp->payload_sz) {
 			rsp->hdr.Status.CifsError =
 				NT_STATUS_UNEXPECTED_IO_ERROR;
@@ -3055,12 +3055,12 @@ static int smb_write_andx_pipe(struct cifsd_work *work)
 	id = le16_to_cpu(req->Fid);
 	rpc_resp = cifsd_rpc_write(work->sess, id, req->Data, count);
 	if (rpc_resp) {
-		if (rpc_resp->flags == CIFSD_RPC_COMMAND_ERROR_NOTIMPLEMENTED) {
+		if (rpc_resp->flags == CIFSD_RPC_ENOTIMPLEMENTED) {
 			rsp->hdr.Status.CifsError = NT_STATUS_NOT_SUPPORTED;
 			cifsd_free(rpc_resp);
 			return -EOPNOTSUPP;
 		}
-		if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
+		if (rpc_resp->flags != CIFSD_RPC_OK) {
 			rsp->hdr.Status.CifsError = NT_STATUS_INVALID_HANDLE;
 			cifsd_free(rpc_resp);
 			return -EINVAL;

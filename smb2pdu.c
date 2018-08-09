@@ -5504,7 +5504,7 @@ static int smb2_read_pipe(struct cifsd_work *work)
 
 	rpc_resp = cifsd_rpc_read(work->sess, id);
 	if (rpc_resp) {
-		if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
+		if (rpc_resp->flags != CIFSD_RPC_OK) {
 			rsp->hdr.Status = NT_STATUS_UNEXPECTED_IO_ERROR;
 			smb2_set_err_rsp(work);
 			cifsd_free(rpc_resp);
@@ -5686,12 +5686,12 @@ static int smb2_write_pipe(struct cifsd_work *work)
 
 	rpc_resp = cifsd_rpc_write(work->sess, id, data_buf, length);
 	if (rpc_resp) {
-		if (rpc_resp->flags == CIFSD_RPC_COMMAND_ERROR_NOTIMPLEMENTED) {
+		if (rpc_resp->flags == CIFSD_RPC_ENOTIMPLEMENTED) {
 			 rsp->hdr.Status = NT_STATUS_NOT_SUPPORTED;
 			 cifsd_free(rpc_resp);
 			 goto out;
 		}
-		if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
+		if (rpc_resp->flags != CIFSD_RPC_OK) {
 			rsp->hdr.Status = NT_STATUS_INVALID_HANDLE;
 			smb2_set_err_rsp(work);
 			cifsd_free(rpc_resp);
@@ -6428,13 +6428,13 @@ int smb2_ioctl(struct cifsd_work *work)
 					   data_buf,
 					   le32_to_cpu(req->inputcount));
 		if (rpc_resp) {
-			if (rpc_resp->flags == CIFSD_RPC_COMMAND_ERROR_NOTIMPLEMENTED) {
+			if (rpc_resp->flags == CIFSD_RPC_ENOTIMPLEMENTED) {
 				rsp->hdr.Status = NT_STATUS_NOT_SUPPORTED;
 				cifsd_free(rpc_resp);
 				goto out;
 			}
 
-			if (rpc_resp->flags != CIFSD_RPC_COMMAND_OK) {
+			if (rpc_resp->flags != CIFSD_RPC_OK) {
 				rsp->hdr.Status = NT_STATUS_INVALID_PARAMETER;
 				cifsd_free(rpc_resp);
 				goto out;

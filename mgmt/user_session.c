@@ -94,13 +94,13 @@ static void cifsd_session_rpc_clear_list(struct cifsd_session *sess)
 static int __rpc_method(char *rpc_name)
 {
 	if (!strcmp(rpc_name, "\\srvsvc") || !strcmp(rpc_name, "srvsvc"))
-		return CIFSD_RPC_COMMAND_SRVSVC_METHOD_INVOKE;
+		return CIFSD_RPC_SRVSVC_METHOD_INVOKE;
 
 	if (!strcmp(rpc_name, "\\wkssvc") || !strcmp(rpc_name, "wkssvc"))
-		return CIFSD_RPC_COMMAND_WKSSVC_METHOD_INVOKE;
+		return CIFSD_RPC_WKSSVC_METHOD_INVOKE;
 
 	if (!strcmp(rpc_name, "LANMAN") || !strcmp(rpc_name, "lanman"))
-		return CIFSD_RPC_COMMAND_RAP;
+		return CIFSD_RPC_RAP_METHOD;
 	return 0;
 }
 
