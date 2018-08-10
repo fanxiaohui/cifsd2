@@ -71,51 +71,42 @@ void cifsd_free_user(struct cifsd_user *user)
 
 void put_cifsd_user(struct cifsd_user *user)
 {
-	pr_debug("IMPLEMENT ME %s\n", __func__);
 }
 
 unsigned short alloc_smb1_vuid(void)
 {
-	pr_debug("IMPLEMENT ME %s\n", __func__);
 	return 0;
 }
 
 void free_smb1_vuid(unsigned short uid)
 {
-	pr_debug("IMPLEMENT ME %s\n", __func__);
 }
 
 struct cifsd_user *um_user_search(char *name)
 {
-	pr_debug("IMPLEMENT ME %s\n", __func__);
 	return NULL;
 }
 
 struct cifsd_user *um_user_search_guest(void)
 {
-	pr_debug("IMPLEMENT ME %s\n", __func__);
 	return NULL;
 }
 
 int um_add_new_user(char *name, char *pass, kuid_t uid, kgid_t gid)
 {
-	pr_debug("IMPLEMENT ME %s\n", __func__);
 	return 0;
 }
 
 int um_delete_user(char *name)
 {
-	pr_debug("IMPLEMENT ME %s\n", __func__);
 	return 0;
 }
 
 void um_cleanup_users(void)
 {
-	pr_debug("IMPLEMENT ME %s\n", __func__);
 }
 
 size_t um_users_show(char *buf, size_t sz)
 {
-	pr_debug("IMPLEMENT ME %s\n", __func__);
 	return 0;
 }
