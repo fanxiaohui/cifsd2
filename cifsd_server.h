@@ -40,9 +40,11 @@ struct cifsd_heartbeat {
 
 struct cifsd_startup_request {
 	__s32	signing;
-	__s8	netbios_name[16];
 	__s8	min_prot[16];
 	__s8	max_prot[16];
+	__s8	netbios_name[16];
+	__s8	work_group[64];
+	__s8	server_string[64];
 } __align;
 
 struct cifsd_shutdown_request {
