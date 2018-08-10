@@ -29,7 +29,7 @@
 #include "transport_tcp.h"
 #include "mgmt/user_session.h"
 
-/* @FIXME: remove this crap */
+/* @FIXME: remove this code */
 
 /* max string size for share and parameters */
 #define SHARE_MAX_NAME_LEN	100

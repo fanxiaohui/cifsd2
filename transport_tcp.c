@@ -22,6 +22,7 @@
 #include "glob.h"
 #include "export.h"
 
+#include "server.h"
 #include "buffer_pool.h"
 #include "transport_tcp.h"
 
@@ -33,8 +34,6 @@ static DEFINE_MUTEX(init_lock);
 
 static LIST_HEAD(tcp_conn_list);
 static DEFINE_RWLOCK(tcp_conn_list_lock);
-
-static int deny_new_conn;
 
 /**
  * cifsd_tcp_conn_alive() - check server is unresponsive or not
@@ -196,6 +195,8 @@ static int cifsd_tcp_conn_handler_loop(void *p)
 	conn->last_active = jiffies;
 
 	while (!kthread_should_stop()) {
+		if (!cifsd_server_running())
+			break;
 		if (conn->tcp_status == CIFSD_SESS_EXITING)
 			break;
 		if (!cifsd_tcp_conn_alive(conn))
@@ -344,9 +345,6 @@ static int cifsd_kthread_fn(void *p)
 	int ret;
 
 	while (!kthread_should_stop()) {
-		if (deny_new_conn)
-			continue;
-
 		ret = kernel_accept(cifsd_socket, &client_sk, O_NONBLOCK);
 		if (ret) {
 			if (ret == -EAGAIN)
@@ -381,7 +379,6 @@ static int cifsd_tcp_run_kthread(void)
 {
 	int rc;
 
-	deny_new_conn = 0;
 	cifsd_kthread = kthread_run(cifsd_kthread_fn,
 				    NULL,
 				    "kcifsd_main");
@@ -697,8 +694,6 @@ static void tcp_stop_kthread(void)
 void cifsd_tcp_destroy(void)
 {
 	mutex_lock(&init_lock);
-	deny_new_conn = 1;
-
 	tcp_destroy_socket();
 	tcp_stop_kthread();
 	tcp_stop_sessions();

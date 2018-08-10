@@ -55,6 +55,8 @@
 #include <crypto/hash.h>
 #include "smberr.h"
 
+/* @FIXME clean up this code */
+
 extern int cifsd_debug_enable;
 extern int cifsd_caseless_search;
 extern bool oplocks_enable;
@@ -492,6 +494,10 @@ static inline struct timespec from_kern_timespec(struct timespec64 ts)
 #define to_kern_timespec(ts) (ts)
 #define from_kern_timespec(ts) (ts)
 #endif
+
+/* @FIXME clean up this code */
+/* @FIXME clean up this code */
+/* @FIXME clean up this code */
 
 bool is_smb_request(struct cifsd_tcp_conn *conn);
 int negotiate_dialect(void *buf);

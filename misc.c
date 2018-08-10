@@ -31,7 +31,11 @@
 #include "transport_tcp.h"
 #include "vfs.h"
 
+/* @FIXME rework this code */
+#include "server.h"
 #include "mgmt/user_session.h"
+
+/* @FIXME rework this code */
 
 static struct {
 	int index;
@@ -128,6 +132,8 @@ static inline int check_smb2_hdr(struct smb2_hdr *smb)
  */
 int check_smb_message(char *buf)
 {
+	/* @FIXME rework this code */
+
 	if (*(__le32 *)((struct smb2_hdr *)buf)->ProtocolId ==
 			SMB2_PROTO_NUMBER) {
 		cifsd_debug("got SMB2 command\n");
@@ -211,6 +217,7 @@ bool is_smb_request(struct cifsd_tcp_conn *conn)
 	return false;
 }
 
+/* @FIXME rework this code */
 int find_matching_smb1_dialect(int start_index, char *cli_dialects,
 		__le16 byte_count)
 {
@@ -233,7 +240,8 @@ int find_matching_smb1_dialect(int start_index, char *cli_dialects,
 					dialects);
 			if (!strncmp(dialects, protocols[i].name,
 						cli_count)) {
-				if (i >= server_min_pr && i <= server_max_pr) {
+				if (i >= server_conf.min_protocol &&
+					i <= server_conf.max_protocol) {
 					cifsd_debug("selected %s dialect\n",
 							protocols[i].name);
 					if (i == CIFS_PROT)
@@ -254,6 +262,7 @@ out:
 	return dialect_id;
 }
 
+/* @FIXME rework this code */
 #ifdef CONFIG_CIFS_SMB2_SERVER
 /**
  * find_matching_smb2_dialect() - find the greatest dialect between dialects
@@ -278,7 +287,8 @@ int find_matching_smb2_dialect(int start_index, __le16 *cli_dialects,
 				le16_to_cpu(cli_dialects[count]));
 			if (le16_to_cpu(cli_dialects[count]) ==
 					protocols[i].prot_id) {
-				if (i >= server_min_pr && i <= server_max_pr) {
+				if (i >= server_conf.min_protocol &&
+					i <= server_conf.max_protocol) {
 					cifsd_debug("selected %s dialect\n",
 							protocols[i].name);
 					dialect_id = protocols[i].prot_id;
@@ -302,6 +312,8 @@ out:
 int negotiate_dialect(void *buf)
 {
 	int start_index, ret = BAD_PROT_ID;
+
+/* @FIXME rework this code */
 
 #ifdef CONFIG_CIFS_SMB2_SERVER
 	start_index = SMB311_PROT;
@@ -334,7 +346,7 @@ struct cifsd_session *lookup_session_on_server(struct cifsd_tcp_conn *conn,
 {
 	struct cifsd_session *sess;
 
-	/* @FIXME: remove this crap */
+	/* @FIXME: remove this code */
 
 	sess = cifsd_session_lookup(sess_id);
 	if (!sess)
@@ -350,11 +362,12 @@ struct cifsd_session *lookup_session_on_server(struct cifsd_tcp_conn *conn,
  */
 struct cifsd_session *validate_sess_handle(struct cifsd_session *session)
 {
-	/* @FIXME: remove this crap */
+	/* @FIXME: remove this code */
 	return session;
 }
 
 #ifndef CONFIG_CIFS_SMB2_SERVER
+/* @FIXME rework this code */
 void init_smb2_0_server(struct cifsd_tcp_conn *server) { }
 void init_smb2_1_server(struct cifsd_tcp_conn *server) { }
 void init_smb3_0_server(struct cifsd_tcp_conn *server) { }

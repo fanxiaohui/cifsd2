@@ -35,7 +35,7 @@
 #define cifsd_ptr(_handle)		((void *)(unsigned long)_handle)
 #define cifsd_sess_handle(_ptr)	((__u64)(unsigned long)_ptr)
 
-/* @FIXME: remove this crap */
+/* @FIXME: remove this code */
 
 struct sock *cifsd_nlsk;
 static DEFINE_MUTEX(nlsk_mutex);

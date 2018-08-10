@@ -37,6 +37,7 @@
 #include "vfs.h"
 #include "fh.h"
 
+#include "server.h"
 #include "mgmt/user_config.h"
 #include "mgmt/share_config.h"
 #include "mgmt/tree_connect.h"
@@ -1103,7 +1104,7 @@ int smb2_negotiate(struct cifsd_work *work)
 		req->SecurityMode & SMB2_NEGOTIATE_SIGNING_REQUIRED)
 		conn->sign = true;
 	else if (server_signing == MANDATORY) {
-		global_signing = true;
+		server_conf.enforced_signing = true;
 		rsp->SecurityMode |= SMB2_NEGOTIATE_SIGNING_REQUIRED;
 		conn->sign = true;
 	}
@@ -1346,7 +1347,7 @@ int smb2_sess_setup(struct cifsd_work *work)
 
 		if (conn->use_spnego) {
 			neg_blob = kzalloc(sizeof(struct _NEGOTIATE_MESSAGE) +
-					(strlen(netbios_name) * 2  + 4) * 6,
+					(strlen(cifsd_netbios_name()) * 2  + 4) * 6,
 					GFP_KERNEL);
 			if (!neg_blob) {
 				rc = -ENOMEM;
@@ -1473,7 +1474,7 @@ int smb2_sess_setup(struct cifsd_work *work)
 
 			if (!sess->sign && ((req->SecurityMode &
 				SMB2_NEGOTIATE_SIGNING_REQUIRED) ||
-				(conn->sign || global_signing) ||
+				(conn->sign || server_conf.enforced_signing) ||
 				(conn->dialect >= SMB30_PROT_ID))) {
 				if (conn->ops->generate_signingkey) {
 					rc = conn->ops->generate_signingkey(

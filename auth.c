@@ -29,6 +29,7 @@
 #include "glob.h"
 #include "export.h"
 
+#include "server.h"
 #include "transport_tcp.h"
 #include "mgmt/user_session.h"
 
@@ -300,8 +301,8 @@ int process_ntlmv2(struct cifsd_session *sess, struct ntlmv2_resp *ntlmv2,
 		goto out;
 	}
 
-	if (domain_name == netbios_name)
-		rc = calc_ntlmv2_hash(sess, ntlmv2_hash, netbios_name);
+	if (!strcmp(domain_name, cifsd_netbios_name()))
+		rc = calc_ntlmv2_hash(sess, ntlmv2_hash, cifsd_netbios_name());
 	else
 		rc = calc_ntlmv2_hash(sess, ntlmv2_hash, domain_name);
 
@@ -516,12 +517,12 @@ unsigned int build_ntlmssp_challenge_blob(CHALLENGE_MESSAGE *chgblob,
 		flags |= NTLMSSP_NEGOTIATE_EXTENDED_SEC;
 
 	chgblob->NegotiateFlags = cpu_to_le32(flags);
-	len = strlen(netbios_name);
+	len = strlen(cifsd_netbios_name());
 	name = kmalloc(2 + (len * 2), GFP_KERNEL);
 	if (!name)
 		return -ENOMEM;
 
-	len = smb_strtoUTF16((__le16 *)name, netbios_name, len,
+	len = smb_strtoUTF16((__le16 *)name, cifsd_netbios_name(), len,
 			sess->conn->local_nls);
 	len = UNICODE_LEN(len);
 	chgblob->TargetName.Length = cpu_to_le16(len);

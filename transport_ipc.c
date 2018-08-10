@@ -27,12 +27,16 @@
 
 #include "transport_ipc.h"
 #include "buffer_pool.h"
+#include "server.h"
 
 #include "mgmt/user_config.h"
 #include "mgmt/share_config.h"
 #include "mgmt/user_session.h"
 #include "mgmt/tree_connect.h"
 #include "mgmt/cifsd_ida.h"
+
+/* @FIXME fix this code */
+extern int get_protocol_idx(char *str);
 
 #define IPC_WAIT_TIMEOUT	(2 * HZ)
 
@@ -93,10 +97,10 @@ static const struct nla_policy cifsd_nl_policy[CIFSD_EVENT_MAX] = {
 		.len = sizeof(struct cifsd_heartbeat),
 	},
 	[CIFSD_EVENT_STARTING_UP] = {
-		.len = sizeof(struct cifsd_startup_shutdown),
+		.len = sizeof(struct cifsd_startup_request),
 	},
 	[CIFSD_EVENT_SHUTTING_DOWN] = {
-		.len = sizeof(struct cifsd_startup_shutdown),
+		.len = sizeof(struct cifsd_shutdown_request),
 	},
 	[CIFSD_EVENT_LOGIN_REQUEST] = {
 		.len = sizeof(struct cifsd_login_request),
@@ -293,12 +297,34 @@ static int handle_startup_event(struct sk_buff *skb, struct genl_info *info)
 			return -EINVAL;
 		}
 
-		pr_err("Switching to a new user space daemon [pid %u]\n",
-			info->snd_portid);
+		pr_err("Reconnect to a new user space daemon");
+	} else {
+		struct cifsd_startup_request *req;
+		int ret;
+
+		req = nla_data(info->attrs[info->genlhdr->cmd]);
+
+		server_conf.signing = req->signing;
+		ret = cifsd_set_netbios_name(req->netbios_name);
+		ret |= cifsd_set_server_string(req->server_string);
+		ret |= cifsd_set_work_group(req->work_group);
+		if (ret)
+			return -EINVAL;
+
+		if (req->min_prot[0]) {
+			ret = get_protocol_idx(req->min_prot);
+			if (ret >= 0)
+				server_conf.min_protocol = ret;
+		}
+		if (req->max_prot[0]) {
+			ret = get_protocol_idx(req->max_prot);
+			if (ret >= 0)
+				server_conf.max_protocol = ret;
+		}
 	}
 
 	cifsd_tools_pid = info->snd_portid;
-	/* start up */
+	cifsd_server_set_running();
 	return 0;
 }
 
@@ -307,7 +333,7 @@ static int handle_shutdown_event(struct sk_buff *skb, struct genl_info *info)
 	if (CIFSD_INVALID_IPC_VERSION(info))
 		return -EINVAL;
 
-	if (!info->attrs[CIFSD_EVENT_STARTING_UP])
+	if (!info->attrs[CIFSD_EVENT_SHUTTING_DOWN])
 		 return -EINVAL;
 
 	if (cifsd_tools_pid && cifsd_tools_pid != info->snd_portid) {
@@ -316,7 +342,7 @@ static int handle_shutdown_event(struct sk_buff *skb, struct genl_info *info)
 		return -EINVAL;
 	}
 
-	/* shutdown */
+	cifsd_server_shutdown();
 	return 0;
 }
 

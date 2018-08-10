@@ -31,6 +31,7 @@
 #include "transport_ipc.h"
 #include "vfs.h"
 
+#include "server.h"
 #include "mgmt/user_config.h"
 #include "mgmt/share_config.h"
 #include "mgmt/tree_connect.h"
@@ -1157,7 +1158,7 @@ static int build_sess_rsp_extsec(struct cifsd_session *sess,
 
 		if (conn->use_spnego) {
 			neg_blob = kmalloc(sizeof(struct _NEGOTIATE_MESSAGE) +
-					(strlen(netbios_name) * 2  + 4) * 6,
+					(strlen(cifsd_netbios_name()) * 2  + 4) * 6,
 					GFP_KERNEL);
 			if (!neg_blob) {
 				err = -ENOMEM;

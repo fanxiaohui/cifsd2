@@ -252,6 +252,7 @@ int cifsd_close_id(struct fidtable_desc *ftab_desc, int id)
  */
 int init_fidtable(struct fidtable_desc *ftab_desc)
 {
+#ifdef CONFIG_CIFS_SMB2_SERVER
 	ftab_desc->ftab = alloc_fidtable(CIFSD_NR_OPEN_DEFAULT);
 	if (!ftab_desc->ftab) {
 		cifsd_err("Failed to allocate fid table\n");
@@ -260,6 +261,7 @@ int init_fidtable(struct fidtable_desc *ftab_desc)
 	ftab_desc->ftab->max_fids = CIFSD_NR_OPEN_DEFAULT;
 	ftab_desc->ftab->start_pos = 1;
 	spin_lock_init(&ftab_desc->fidtable_lock);
+#endif
 	return 0;
 }
 
@@ -934,6 +936,10 @@ void destroy_global_fidtable(void)
 		ftab->fileid[i] = NULL;
 	}
 	free_fidtable(ftab);
+}
+#else
+void destroy_global_fidtable(void)
+{
 }
 #endif
 
