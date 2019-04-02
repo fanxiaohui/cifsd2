@@ -122,72 +122,58 @@ static const struct genl_ops cifsd_genl_ops[] = {
 	{
 		.cmd	= CIFSD_EVENT_UNSPEC,
 		.doit	= handle_unsupported_event,
-		.policy	= cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_HEARTBEAT_REQUEST,
 		.doit	= handle_unsupported_event,
-		.policy	= cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_STARTING_UP,
 		.doit	= handle_startup_event,
-		.policy = cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_SHUTTING_DOWN,
 		.doit	= handle_unsupported_event,
-		.policy = cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_LOGIN_REQUEST,
 		.doit	= handle_unsupported_event,
-		.policy = cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_LOGIN_RESPONSE,
 		.doit	= handle_generic_event,
-		.policy = cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_SHARE_CONFIG_REQUEST,
 		.doit	= handle_unsupported_event,
-		.policy = cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_SHARE_CONFIG_RESPONSE,
 		.doit	= handle_generic_event,
-		.policy = cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_TREE_CONNECT_REQUEST,
 		.doit	= handle_unsupported_event,
-		.policy = cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_TREE_CONNECT_RESPONSE,
 		.doit	= handle_generic_event,
-		.policy = cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_TREE_DISCONNECT_REQUEST,
 		.doit	= handle_unsupported_event,
-		.policy = cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_LOGOUT_REQUEST,
 		.doit	= handle_unsupported_event,
-		.policy = cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_RPC_REQUEST,
 		.doit	= handle_unsupported_event,
-		.policy = cifsd_nl_policy,
 	},
 	{
 		.cmd	= CIFSD_EVENT_RPC_RESPONSE,
 		.doit	= handle_generic_event,
-		.policy = cifsd_nl_policy,
 	},
 };
 
@@ -198,6 +184,7 @@ struct genl_family cifsd_genl_family = {
 	.maxattr	= CIFSD_EVENT_MAX,
 	.netnsok	= true,
 	.module		= THIS_MODULE,
+	.policy		= cifsd_nl_policy,
 	.ops		= cifsd_genl_ops,
 	.n_ops		= ARRAY_SIZE(cifsd_genl_ops),
 };
